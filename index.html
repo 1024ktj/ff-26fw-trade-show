@@ -1,0 +1,1556 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MLB 26FW Q2 TRADE SHOW 샘플 대시보드</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg:        #f5f7fc;
+  --card:      #ffffff;
+  --border:    #dde4f4;
+  --primary:   #5b7fd4;
+  --primary2:  #7c5fc0;
+  --accent:    #a78bfa;
+  --info:      #60a5fa;
+  --success:   #34d399;
+  --warning:   #fbbf24;
+  --danger:    #f87171;
+  --text:      #1e2a4a;
+  --muted:     #8893b0;
+  --shadow:    0 2px 12px rgba(91,127,212,0.10);
+  --shadow-lg: 0 6px 24px rgba(91,127,212,0.14);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  font-family: 'Malgun Gothic','Apple SD Gothic Neo',sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  font-size: 14px;
+}
+
+/* ─── 헤더 ─── */
+.header {
+  background: linear-gradient(120deg, #4f72c8 0%, #7c5fc0 60%, #a78bfa 100%);
+  padding: 20px 36px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 3px 16px rgba(91,127,212,0.25);
+}
+.header-title h1 { font-size:20px; font-weight:800; color:#fff; letter-spacing:0.3px; }
+.header-title p  { font-size:12px; color:rgba(255,255,255,0.75); margin-top:3px; }
+.header-meta { text-align:right; }
+.header-meta .today { font-size:13px; color:rgba(255,255,255,0.85); }
+.d-badge {
+  display:inline-block;
+  background:rgba(255,255,255,0.22);
+  border:1px solid rgba(255,255,255,0.4);
+  color:#fff;
+  font-size:12px;
+  font-weight:700;
+  padding:3px 12px;
+  border-radius:20px;
+  margin-top:4px;
+}
+.schedule-pills { display:flex; gap:8px; margin-top:8px; flex-wrap:wrap; justify-content:flex-end; }
+.s-pill {
+  background:rgba(255,255,255,0.15);
+  border:1px solid rgba(255,255,255,0.3);
+  color:rgba(255,255,255,0.9);
+  font-size:11px;
+  padding:2px 10px;
+  border-radius:12px;
+}
+
+/* ─── 레이아웃 ─── */
+.container { max-width:1640px; margin:0 auto; padding:24px 32px; }
+.grid-5 { display:grid; grid-template-columns:repeat(5,1fr); gap:16px; margin-bottom:24px; }
+.grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:22px; margin-bottom:24px; }
+.grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:22px; margin-bottom:24px; }
+
+/* ─── 카드 ─── */
+.card {
+  background: var(--card);
+  border-radius:14px;
+  border:1px solid var(--border);
+  padding:20px;
+  box-shadow: var(--shadow);
+}
+
+/* ─── KPI 카드 ─── */
+.kpi-card {
+  background: var(--card);
+  border-radius:14px;
+  border:1px solid var(--border);
+  padding:18px 20px;
+  box-shadow: var(--shadow);
+  position:relative;
+  overflow:hidden;
+  transition: transform 0.18s, box-shadow 0.18s;
+}
+.kpi-card:hover { transform:translateY(-2px); box-shadow: var(--shadow-lg); }
+.kpi-card .stripe {
+  position:absolute; top:0; left:0; right:0; height:4px;
+  background: var(--kpi-color, var(--primary));
+  border-radius:14px 14px 0 0;
+}
+.kpi-card .kpi-label { font-size:11px; color:var(--muted); font-weight:600; letter-spacing:0.5px; text-transform:uppercase; margin-bottom:8px; }
+.kpi-card .kpi-val   { font-size:34px; font-weight:800; color:var(--kpi-color, var(--primary)); line-height:1; }
+.kpi-card .kpi-sub   { font-size:12px; color:var(--muted); margin-top:5px; }
+
+/* ─── 섹션 타이틀 ─── */
+.sec-title {
+  font-size:14px; font-weight:700; color:var(--text);
+  margin-bottom:16px;
+  display:flex; align-items:center; gap:8px;
+  padding-bottom:10px;
+  border-bottom:2px solid var(--border);
+}
+.sec-title .tag {
+  font-size:10px; font-weight:700;
+  padding:2px 9px; border-radius:10px;
+  background:linear-gradient(90deg,#e8eeff,#ede8ff);
+  color:var(--primary2);
+  letter-spacing:0.3px;
+}
+
+/* ─── 카테고리 진행률 ─── */
+.cat-item { margin-bottom:18px; }
+.cat-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:7px; }
+.cat-name { font-size:13px; font-weight:700; display:flex; align-items:center; gap:7px; }
+.cat-dot  { width:9px; height:9px; border-radius:50%; display:inline-block; }
+.cat-nums { font-size:12px; color:var(--muted); }
+.cat-nums strong { color:var(--text); font-size:14px; }
+.pbar { height:9px; background:#edf0fc; border-radius:5px; overflow:hidden; }
+.pbar-fill { height:100%; border-radius:5px; transition:width 1.2s cubic-bezier(.4,0,.2,1); }
+.cat-stats { display:flex; gap:14px; margin-top:6px; font-size:11px; color:var(--muted); }
+.cat-stats span { color:var(--text); font-weight:600; }
+
+/* ─── 타임라인 ─── */
+.timeline { padding-left:18px; position:relative; }
+.timeline::before {
+  content:''; position:absolute; left:6px; top:6px; bottom:6px;
+  width:2px; background: linear-gradient(180deg,#c7d5f5,#d4c9f5);
+  border-radius:2px;
+}
+.tl-item { position:relative; margin-bottom:14px; padding-left:16px; }
+.tl-item::before {
+  content:''; position:absolute; left:-13px; top:4px;
+  width:10px; height:10px; border-radius:50%;
+  border:2px solid var(--tl-color, #b0bec5);
+  background: var(--tl-bg, white);
+}
+.tl-item.done::before   { border-color:var(--success); background:var(--success); }
+.tl-item.current::before{ border-color:var(--primary); background:var(--primary); box-shadow:0 0 0 3px rgba(91,127,212,0.2); }
+.tl-item.soon::before   { border-color:var(--warning); background:#fff9e6; }
+.tl-item.key::before    { border-color:var(--danger); background:#fff0f0; }
+.tl-date  { font-size:11px; color:var(--muted); margin-bottom:1px; }
+.tl-label { font-size:13px; font-weight:700; }
+.tl-sub   { font-size:11px; color:var(--muted); margin-top:2px; }
+
+/* ─── ETD/RDD 리스트 ─── */
+.date-row {
+  display:flex; align-items:center; gap:10px;
+  padding:7px 0;
+  border-bottom:1px solid #f0f2fb;
+}
+.date-row:last-child { border-bottom:none; }
+.dr-date   { font-size:12px; font-weight:600; min-width:88px; color:var(--text); }
+.dr-past   { color:var(--muted); }
+.dr-bar    { flex:1; height:6px; background:#edf0fc; border-radius:3px; overflow:hidden; }
+.dr-fill   { height:100%; border-radius:3px; }
+.dr-count  { font-size:12px; color:var(--muted); min-width:30px; text-align:right; font-weight:600; }
+.co-badge  {
+  font-size:10px; padding:1px 6px; border-radius:6px; font-weight:700; margin-left:4px;
+}
+.co-cn { background:#dbeafe; color:#1d4ed8; }
+.co-vn { background:#dcfce7; color:#166534; }
+.co-kr { background:#fae8ff; color:#86198f; }
+
+/* ─── 날짜 리스트 비중/누계 ─── */
+.dr-pct   { font-size:11px; color:var(--muted); min-width:42px; text-align:right; }
+.dr-cum   { font-size:11px; font-weight:700; min-width:72px; text-align:right; }
+
+/* ─── AI 인사이트 ─── */
+.insight-grid {
+  display:grid; grid-template-columns:1fr 1fr;
+  gap:14px; margin-top:4px;
+}
+.insight-block {
+  border-radius:10px; padding:14px 16px;
+  border-left:4px solid transparent;
+}
+.insight-summary { background:#f0f4ff; border-color:#5b7fd4; }
+.insight-danger  { background:#fff5f5; border-color:#f87171; }
+.insight-warning { background:#fffbeb; border-color:#fbbf24; }
+.insight-success { background:#f0fdf4; border-color:#34d399; }
+.insight-block-title {
+  font-size:12px; font-weight:800; margin-bottom:10px;
+  display:flex; align-items:center; gap:6px;
+}
+.insight-summary .insight-block-title { color:#3b5fcb; }
+.insight-danger  .insight-block-title { color:#dc2626; }
+.insight-warning .insight-block-title { color:#d97706; }
+.insight-success .insight-block-title { color:#059669; }
+.insight-item {
+  font-size:12px; line-height:1.6; padding:3px 0;
+  border-bottom:1px solid rgba(0,0,0,0.04);
+  display:flex; gap:7px; align-items:flex-start;
+}
+.insight-item:last-child { border-bottom:none; }
+.insight-bullet { flex-shrink:0; margin-top:2px; font-size:10px; }
+.insight-val    { font-weight:700; }
+.insight-muted  { color:#8893b0; font-size:11px; }
+@media(max-width:768px){ .insight-grid{ grid-template-columns:1fr; } }
+.insight-toggle {
+  cursor:pointer; user-select:none;
+  display:flex; align-items:center; justify-content:space-between;
+  padding-bottom:0; border-bottom:none; margin-bottom:0;
+}
+.insight-toggle:hover { opacity:0.8; }
+.insight-toggle .toggle-arrow {
+  font-size:11px; color:var(--muted);
+  transition: transform 0.3s ease;
+  display:inline-block;
+}
+.insight-body {
+  overflow:hidden;
+  max-height:0;
+  transition: max-height 0.4s cubic-bezier(0.4,0,0.2,1), opacity 0.3s ease, margin-top 0.3s ease;
+  opacity:0;
+  margin-top:0;
+}
+.insight-body.open {
+  max-height:1000px;
+  opacity:1;
+  margin-top:16px;
+}
+
+/* ─── 피벗 테이블 ─── */
+.pivot-wrap { overflow-x:auto; border-radius:10px; border:1px solid var(--border); }
+.pivot-tbl { border-collapse:collapse; font-size:12px; }
+.pivot-tbl th, .pivot-tbl td {
+  padding:7px 12px; border:1px solid #edf0fc;
+  text-align:center; white-space:nowrap;
+}
+.pivot-tbl thead th {
+  background:#f0f3fc; color:var(--muted); font-weight:700;
+  font-size:11px; letter-spacing:0.3px; text-transform:uppercase;
+}
+.pivot-tbl thead th.th-due  { background:#dbeafe; color:#1e40af; }
+.pivot-tbl .item-label      { text-align:left; font-weight:700; background:#f8f9fe; min-width:56px; }
+.pivot-tbl .cell-empty      { color:#d1d5e8; font-size:11px; }
+.pivot-tbl .cell-data       { background:#fff; }
+.pivot-tbl .cell-past       { opacity:0.5; }
+.pivot-tbl .cell-due        { background:#eff6ff; }
+.pivot-tbl .cell-delayed    { background:#fff5f5; }
+.pivot-tbl .p-val           { font-weight:700; color:var(--text); }
+.pivot-tbl .p-pct           { font-size:10px; color:var(--muted); }
+.pivot-tbl .col-total-th    { background:#ede8ff; color:var(--primary2); }
+.pivot-tbl .col-total-td    { background:#f3f0fc; font-weight:700; color:var(--primary2); }
+.pivot-tbl tfoot td         { background:#ede8ff; font-weight:700; border-top:2px solid #c4b5fd; }
+.pivot-tbl tfoot .p-pct     { color:var(--primary2); font-size:10px; }
+.pivot-tbl tfoot .grand-td  { background:#c4b5fd; color:#fff; font-weight:800; }
+.pivot-tbl .class-header {
+  background:linear-gradient(90deg,#e8ecf8 0%,#eef0fc 100%);
+  color:var(--primary2); text-align:left; font-size:11px;
+  font-weight:800; letter-spacing:0.6px; text-transform:uppercase;
+  padding:8px 14px; border-top:2px solid #c7d2f0;
+}
+.pivot-tbl .item-indent { padding-left:24px !important; }
+.pivot-tbl .class-subtotal-row td { background:#eef1fb; }
+.pivot-tbl .class-subtotal-label { color:var(--primary); font-weight:700; font-style:italic; font-size:11px; }
+.pivot-tbl .class-subtotal-cell  { font-size:11px; }
+
+/* ─── 카테고리 미니 탭 ─── */
+.cat-tabs { display:flex; gap:4px; margin-bottom:12px; }
+.cat-tab {
+  padding:3px 10px; border-radius:6px; border:1.5px solid var(--border);
+  background:var(--card); color:var(--muted); font-size:11px; font-weight:600;
+  font-family:inherit; cursor:pointer; transition:all 0.15s;
+}
+.cat-tab:hover { border-color:var(--primary); color:var(--primary); }
+.cat-tab.active { background:linear-gradient(90deg,var(--primary),var(--primary2)); border-color:transparent; color:#fff; }
+
+/* ─── 누계 요약 박스 ─── */
+.due-summary {
+  margin-top:14px;
+  background:#f5f7fc;
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:10px 14px;
+}
+.due-summary-title {
+  font-size:10px; font-weight:700; color:var(--muted);
+  text-transform:uppercase; letter-spacing:0.4px; margin-bottom:8px;
+}
+.due-row {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:4px 0; border-bottom:1px solid #eaedf8; font-size:12px;
+}
+.due-row:last-child { border-bottom:none; }
+.due-label { color:var(--text); font-weight:600; }
+.due-val   { font-weight:800; }
+
+/* ─── 테이블 공통 ─── */
+table { width:100%; border-collapse:collapse; font-size:12.5px; }
+thead th {
+  background:#f0f3fc;
+  color:var(--muted);
+  font-weight:700;
+  padding:9px 13px;
+  text-align:left;
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:0.4px;
+  white-space:nowrap;
+  border-bottom:1px solid var(--border);
+}
+tbody tr { border-bottom:1px solid #f0f3fc; transition:background 0.12s; cursor:default; }
+tbody tr:hover { background:#f6f8ff; }
+tbody td { padding:9px 13px; color:var(--text); }
+tbody td.muted { color:var(--muted); }
+
+/* 미니 진행바 */
+.mini-wrap { display:flex; align-items:center; gap:7px; }
+.mini-bar  { flex:1; height:5px; background:#edf0fc; border-radius:3px; overflow:hidden; min-width:50px; }
+.mini-fill { height:100%; border-radius:3px; }
+.pct-txt   { font-size:11px; font-weight:700; min-width:34px; text-align:right; }
+
+/* 배지 */
+.badge-done    { background:#d1fae5; color:#065f46; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:700; }
+.badge-pending { background:#dbeafe; color:#1e40af; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:700; }
+.badge-delay   { background:#fee2e2; color:#991b1b; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:700; }
+.badge-risk    { background:#fef9c3; color:#92400e; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:700; }
+.badge-na      { background:#e2e8f0; color:#64748b; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:700; }
+
+/* ─── 상세 테이블 ─── */
+.filter-bar { display:flex; gap:10px; margin-bottom:14px; flex-wrap:wrap; align-items:center; }
+.f-btn {
+  padding:6px 14px; border-radius:8px; border:1.5px solid var(--border);
+  background:var(--card); color:var(--muted); font-size:12px; font-weight:600;
+  font-family:inherit; cursor:pointer; transition:all 0.15s;
+}
+.f-btn:hover { border-color:var(--primary); color:var(--primary); }
+.f-btn.active { background:linear-gradient(90deg,var(--primary),var(--primary2)); border-color:transparent; color:#fff; }
+.f-select, .f-input {
+  background:var(--card); border:1.5px solid var(--border); color:var(--text);
+  padding:6px 11px; border-radius:8px; font-size:12px; outline:none; font-family:inherit;
+}
+.f-select:focus, .f-input:focus { border-color:var(--primary); }
+.detail-wrap { border-radius:14px; border:1px solid var(--border); overflow:hidden; box-shadow:var(--shadow); }
+.detail-scroll { overflow-x:auto; max-height:480px; overflow-y:auto; }
+.detail-tbl { width:100%; border-collapse:collapse; font-size:12px; }
+.detail-tbl thead { position:sticky; top:0; z-index:10; }
+.detail-tbl thead th { background:#f0f3fc; border-bottom:1px solid var(--border); }
+.detail-tbl tbody td { padding:7px 12px; border-bottom:1px solid #f3f5fb; }
+.detail-tbl tbody tr:hover { background:#f6f8ff; }
+.detail-tbl .row-delayed { background:#fff5f5; }
+.detail-tbl .row-delayed:hover { background:#fee2e2 !important; }
+.detail-tbl .row-na       { background:#f8fafc; opacity:0.72; }
+.detail-tbl .row-na:hover  { background:#f1f5f9 !important; opacity:1; }
+.row-cnt { padding:9px 14px; font-size:12px; color:var(--muted); background:#fafbff; border-top:1px solid var(--border); }
+
+/* 스크롤바 */
+::-webkit-scrollbar { width:5px; height:5px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:#d0d8ee; border-radius:3px; }
+
+/* 탭 */
+.tabs { display:flex; gap:0; margin-bottom:18px; border-bottom:2px solid var(--border); }
+.tab-btn {
+  padding:8px 20px; background:none; border:none;
+  font-size:13px; font-weight:600; color:var(--muted);
+  cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-2px;
+  transition:all 0.15s; font-family:inherit;
+}
+.tab-btn.active { color:var(--primary2); border-bottom-color:var(--primary2); }
+.tab-pane { display:none; }
+.tab-pane.active { display:block; }
+
+/* 반응형 */
+@media(max-width:1200px){
+  .grid-5{grid-template-columns:repeat(3,1fr);}
+  .grid-3{grid-template-columns:1fr 1fr;}
+}
+@media(max-width:768px){
+  .container{padding:14px;}
+  .grid-5,.grid-2,.grid-3{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<!-- 헤더 -->
+<div class="header">
+  <div class="header-title">
+    <h1>(WEAR) MLB 26FW Q2 TRADE SHOW — 샘플 입고 대시보드</h1>
+    <p>COVER 시트 기준 (2026.02.09 ver) | GO 아이템 | 지정 담당자 9명</p>
+  </div>
+  <div class="header-meta">
+    <div class="today" id="today-txt"></div>
+    <div class="d-badge" id="d-badge"></div>
+    <div class="schedule-pills">
+      <span class="s-pill">KR 입고마감 04.02</span>
+      <span class="s-pill">CEO 품평회 04.06</span>
+      <span class="s-pill">CN TRADE SHOW 04.08</span>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- KPI -->
+  <div class="grid-5">
+    <div class="kpi-card" style="--kpi-color:#7c5fc0">
+      <div class="stripe"></div>
+      <div class="kpi-label">총 스타일(M)</div>
+      <div class="kpi-val" id="k-style"></div>
+      <div class="kpi-sub" id="k-style-sub">KNIT + WOVEN + DENIM</div>
+    </div>
+    <div class="kpi-card" style="--kpi-color:#5b7fd4">
+      <div class="stripe"></div>
+      <div class="kpi-label">전체 SKU</div>
+      <div class="kpi-val" id="k-sku"></div>
+      <div class="kpi-sub" id="k-sku-sub"></div>
+    </div>
+    <div class="kpi-card" style="--kpi-color:#34d399">
+      <div class="stripe"></div>
+      <div class="kpi-label">총 생산 PCS</div>
+      <div class="kpi-val" id="k-pcs"></div>
+      <div class="kpi-sub">TTL 품평 샘플 기준</div>
+    </div>
+    <div class="kpi-card" style="--kpi-color:#60a5fa">
+      <div class="stripe"></div>
+      <div class="kpi-label">KR 입고 완료</div>
+      <div class="kpi-val" id="k-arrived"></div>
+      <div class="kpi-sub" id="k-arrived-sub"></div>
+    </div>
+    <div class="kpi-card" style="--kpi-color:#f87171">
+      <div class="stripe"></div>
+      <div class="kpi-label">경고 · 지연 현황</div>
+      <div id="k-delayed-wrap" style="margin-top:8px"></div>
+    </div>
+  </div>
+
+  <!-- AI 인사이트 -->
+  <div class="card" style="margin-bottom:24px;">
+    <div class="sec-title insight-toggle" onclick="toggleInsight()">
+      <span>📊 AI 인사이트 <span class="tag">자동 분석</span></span>
+      <span class="toggle-arrow" id="insight-arrow">▼ 펼치기</span>
+    </div>
+    <div class="insight-body" id="insight-body">
+      <div class="insight-grid" id="insight-grid"></div>
+    </div>
+  </div>
+
+  <!-- 카테고리 진행률 + 타임라인 -->
+  <div class="grid-2">
+    <div class="card">
+      <div class="sec-title">카테고리별 진행률 <span class="tag">KNIT / WOVEN / DENIM</span></div>
+      <div id="cat-progress"></div>
+    </div>
+    <div class="card">
+      <div class="sec-title">주요 일정 타임라인</div>
+      <div class="timeline">
+        <div class="tl-item key">
+          <div class="tl-date">2026-04-02</div>
+          <div class="tl-label" style="color:var(--danger)">CN/KR 샘플 입고 DUE</div>
+          <div class="tl-sub">전체 입고 마감 TARGET</div>
+        </div>
+        <div class="tl-item key">
+          <div class="tl-date">2026-04-06</div>
+          <div class="tl-label" style="color:var(--danger)">26FW Q2 CEO 품평회</div>
+        </div>
+        <div class="tl-item key">
+          <div class="tl-date">2026-04-08</div>
+          <div class="tl-label" style="color:#9333ea;font-size:14px">26FW Q2 CN TRADE SHOW</div>
+          <div class="tl-sub">최종 쇼</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CN ETD / CN RDD / KR 입고예정 -->
+  <div class="grid-3" style="margin-bottom:24px;">
+    <div class="card">
+      <div class="sec-title">CN ETD 일정별 <span class="tag">중국 출발예정</span></div>
+      <div class="cat-tabs" id="etd-cat-tabs">
+        <button class="cat-tab active" onclick="switchCatTab('etd','all',this)">전체</button>
+        <button class="cat-tab" onclick="switchCatTab('etd','KNIT',this)">KNIT</button>
+        <button class="cat-tab" onclick="switchCatTab('etd','WOVEN',this)">WOVEN</button>
+        <button class="cat-tab" onclick="switchCatTab('etd','DENIM',this)">DENIM</button>
+      </div>
+      <div id="cn-etd-list"></div>
+      <div style="margin-top:12px; font-size:11px; color:var(--muted);">
+        CO별: <span id="co-cn-cnt" style="color:#1d4ed8;font-weight:700"></span>CN&nbsp;
+              <span id="co-vn-cnt" style="color:#166534;font-weight:700"></span>VN&nbsp;
+              <span id="co-kr-cnt" style="color:#86198f;font-weight:700"></span>KR
+      </div>
+      <div class="due-summary" id="etd-summary"></div>
+    </div>
+    <div class="card">
+      <div class="sec-title">CN RDD 예상 <span class="tag">CN도착예정 (ETD+Transit)</span></div>
+      <div style="font-size:11px; color:var(--muted); margin-bottom:10px;">
+        CN출고→CN입고 : CN +2일 / VN·KR +5일 transit
+      </div>
+      <div class="cat-tabs" id="rdd-cat-tabs">
+        <button class="cat-tab active" onclick="switchCatTab('rdd','all',this)">전체</button>
+        <button class="cat-tab" onclick="switchCatTab('rdd','KNIT',this)">KNIT</button>
+        <button class="cat-tab" onclick="switchCatTab('rdd','WOVEN',this)">WOVEN</button>
+        <button class="cat-tab" onclick="switchCatTab('rdd','DENIM',this)">DENIM</button>
+      </div>
+      <div id="cn-rdd-list"></div>
+      <div class="due-summary" id="rdd-summary"></div>
+    </div>
+    <div class="card">
+      <div class="sec-title">KR 입고예정일별 <span class="tag">한국 입고예정</span></div>
+      <div class="cat-tabs" id="kr-cat-tabs">
+        <button class="cat-tab active" onclick="switchCatTab('kr','all',this)">전체</button>
+        <button class="cat-tab" onclick="switchCatTab('kr','KNIT',this)">KNIT</button>
+        <button class="cat-tab" onclick="switchCatTab('kr','WOVEN',this)">WOVEN</button>
+        <button class="cat-tab" onclick="switchCatTab('kr','DENIM',this)">DENIM</button>
+      </div>
+      <div id="kr-exp-list"></div>
+      <div class="due-summary" id="kr-summary"></div>
+    </div>
+  </div>
+
+  <!-- 담당자 & 벤더 & 디자이너 & ITEM 탭 -->
+  <div class="card" style="margin-bottom:24px;">
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('vendor')">벤더별 현황</button>
+      <button class="tab-btn" onclick="switchTab('designer')">디자이너별 현황</button>
+      <button class="tab-btn" onclick="switchTab('item')">ITEM별 현황</button>
+      <button class="tab-btn" onclick="switchTab('staff')">담당자별 현황</button>
+    </div>
+
+    <!-- 담당자 탭 -->
+    <div class="tab-pane" id="tab-staff">
+      <div class="sec-title">담당자(소싱)별 샘플 입고 현황 <span class="tag" id="staff-badge">9명</span></div>
+      <table>
+        <thead><tr>
+          <th>담당자</th><th>스타일</th><th>SKU</th><th>PCS</th>
+          <th>KR 입고</th><th>CN 발송</th><th>지연</th><th>KR 진행률</th><th>상태</th>
+        </tr></thead>
+        <tbody id="staff-tbody"></tbody>
+      </table>
+    </div>
+
+    <!-- 벤더 탭 -->
+    <div class="tab-pane active" id="tab-vendor">
+      <div class="sec-title">벤더별 샘플 현황 <span class="tag" id="vendor-badge">전체</span></div>
+      <table>
+        <thead><tr>
+          <th>벤더명</th><th>스타일</th><th>SKU</th><th>분류</th>
+          <th>KR 입고</th><th>CN 발송</th><th>지연</th><th>진행률</th><th>상태</th>
+        </tr></thead>
+        <tbody id="vendor-tbody"></tbody>
+      </table>
+    </div>
+
+    <!-- 디자이너 탭 -->
+    <div class="tab-pane" id="tab-designer">
+      <div class="sec-title">디자이너별 샘플 현황 <span class="tag" id="designer-badge">전체</span></div>
+      <table>
+        <thead><tr>
+          <th>디자이너명</th><th>스타일</th><th>SKU</th><th>분류</th>
+          <th>KR 입고</th><th>CN 발송</th><th>지연</th><th>진행률</th><th>상태</th>
+        </tr></thead>
+        <tbody id="designer-tbody"></tbody>
+      </table>
+    </div>
+
+    <!-- ITEM 탭 -->
+    <div class="tab-pane" id="tab-item">
+      <div class="sec-title">ITEM별 KR 입고예정 현황 <span class="tag" id="item-badge">전체</span></div>
+      <div class="pivot-wrap" id="item-pivot"></div>
+      <div class="due-summary" id="item-due-summary" style="margin-top:16px;"></div>
+    </div>
+  </div>
+
+  <!-- 차트 -->
+  <div class="grid-2" style="margin-bottom:24px;">
+    <div class="card">
+      <div class="sec-title">카테고리별 SKU 현황</div>
+      <canvas id="catChart" height="200"></canvas>
+    </div>
+    <div class="card">
+      <div class="sec-title">벤더별 SKU 분포</div>
+      <canvas id="staffChart" height="200"></canvas>
+    </div>
+  </div>
+
+  <!-- 상세 목록 -->
+  <div style="margin-bottom:24px;">
+    <div class="sec-title">
+      전체 샘플 상세 목록
+      <span class="tag" id="detail-badge">0건</span>
+    </div>
+    <div class="filter-bar">
+      <button class="f-btn active" onclick="setStatusFilter('all',this)">전체</button>
+      <button class="f-btn" onclick="setStatusFilter('pending',this)">미입고</button>
+      <button class="f-btn" onclick="setStatusFilter('arrived',this)">입고완료</button>
+      <button class="f-btn" id="btn-kr-delayed" onclick="setStatusFilter('kr_delayed',this)">KR 지연</button>
+      <button class="f-btn" id="btn-cn-delayed" onclick="setStatusFilter('cn_delayed',this)">CN 지연</button>
+      <button class="f-btn" id="btn-na" onclick="setStatusFilter('na',this)">미제작</button>
+      <select class="f-select" id="f-sort" onchange="renderDetail()">
+        <option value="">카테고리 전체</option>
+        <option>KNIT</option><option>WOVEN</option><option>DENIM</option>
+      </select>
+      <select class="f-select" id="f-sourcing" onchange="renderDetail()">
+        <option value="">담당자 전체</option>
+      </select>
+      <select class="f-select" id="f-designer" onchange="renderDetail()">
+        <option value="">디자이너 전체</option>
+      </select>
+      <select class="f-select" id="f-vendor" onchange="renderDetail()">
+        <option value="">벤더 전체</option>
+      </select>
+      <select class="f-select" id="f-co" onchange="renderDetail()">
+        <option value="">생산국 전체</option>
+        <option>CN</option><option>VN</option><option>KR</option>
+      </select>
+      <input class="f-input" id="f-search" placeholder="품번 · 설명 검색..." oninput="renderDetail()" style="min-width:170px;">
+    </div>
+    <div class="detail-wrap">
+      <div class="detail-scroll">
+        <table class="detail-tbl">
+          <thead><tr>
+            <th>#</th><th>SKU</th><th>분류</th><th>설명</th><th>컬러</th>
+            <th>CO</th><th>담당자</th><th>디자이너</th><th>벤더</th>
+            <th>CN ETD</th><th>CN RDD</th><th>CN ATD</th>
+            <th>KR 입고예정</th><th>KR 실입고</th><th>상태</th><th>특이사항</th>
+          </tr></thead>
+          <tbody id="detail-tbody"></tbody>
+        </table>
+      </div>
+      <div class="row-cnt" id="row-cnt"></div>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<script src="embed_data.js"></script>
+<script>
+// ── 데이터 ──────────────────────────────────────────────
+const D  = DASHBOARD;
+const AD = D.all_data;
+const _now = new Date();
+const TODAY = _now.getFullYear()+'-'+String(_now.getMonth()+1).padStart(2,'0')+'-'+String(_now.getDate()).padStart(2,'0');
+
+// ── 유틸 ────────────────────────────────────────────────
+function isDelayed(d){
+  return !d.is_na && d.kr_expected && d.kr_expected < TODAY && !d.kr_actual;
+}
+function isCnRisk(d){
+  return !d.is_na && d.cn_etd && d.cn_etd < TODAY && !d.cn_atd;
+}
+function dayDiff(a,b){ return Math.ceil((new Date(a)-new Date(b))/86400000); }
+
+function statusBadge(d){
+  if(d.is_na)       return '<span class="badge-na">미제작</span>';
+  if(isDelayed(d))  return '<span class="badge-delay">지연</span>';
+  if(d.kr_actual)   return '<span class="badge-done">입고완료</span>';
+  if(isCnRisk(d))   return '<span class="badge-risk">CN 미확인</span>';
+  return '<span class="badge-pending">진행중</span>';
+}
+
+function barColor(pct, delayed){
+  if(delayed>0) return '#f87171';
+  if(pct>=100)  return '#34d399';
+  return '#7c5fc0';
+}
+
+// ── 헤더 ────────────────────────────────────────────────
+document.getElementById('today-txt').textContent = 'TODAY: ' + TODAY;
+const dLeft = dayDiff('2026-04-08', TODAY);
+document.getElementById('d-badge').textContent = 'D-'+dLeft+' to CN TRADE SHOW';
+
+// ── KPI ─────────────────────────────────────────────────
+const totalArrived = AD.filter(d=>d.kr_actual).length;
+const totalDelayed = AD.filter(d=>isDelayed(d)).length;
+const naSku        = AD.filter(d=>d.is_na).length;
+const naStyleCnt   = (D.na_styles || 0);
+
+// KR / CN 경고·지연 분류 (N/A 제외)
+const KR_WARN_S = '2026-04-03', KR_WARN_E = '2026-04-05', KR_DELAY_S = '2026-04-06';
+const CN_WARN_S = '2026-04-03', CN_WARN_E = '2026-04-07', CN_DELAY_S = '2026-04-08';
+const krWarnCnt  = AD.filter(d=>!d.is_na&&!d.kr_actual&&d.kr_expected&&d.kr_expected>=KR_WARN_S&&d.kr_expected<=KR_WARN_E).length;
+const krDelayCnt = AD.filter(d=>!d.is_na&&!d.kr_actual&&d.kr_expected&&d.kr_expected>=KR_DELAY_S).length;
+const cnWarnCnt  = AD.filter(d=>!d.is_na&&!d.kr_actual&&d.cn_rdd&&d.cn_rdd>=CN_WARN_S&&d.cn_rdd<=CN_WARN_E).length;
+const cnDelayCnt = AD.filter(d=>!d.is_na&&!d.kr_actual&&d.cn_rdd&&d.cn_rdd>=CN_DELAY_S).length;
+
+document.getElementById('k-sku').textContent    = D.total_sku;
+document.getElementById('k-sku-sub').textContent= D.total_sku+'개 GO 아이템';
+document.getElementById('k-style').textContent  = D.total_styles;
+document.getElementById('k-style-sub').textContent = 'KNIT + WOVEN + DENIM';
+document.getElementById('k-pcs').textContent    = D.total_pcs.toLocaleString();
+document.getElementById('k-arrived').textContent= totalArrived;
+document.getElementById('k-arrived-sub').textContent =
+  Math.round(totalArrived/D.total_sku*100)+'% 완료';
+document.getElementById('k-delayed-wrap').innerHTML =
+  `<div style="font-size:13px;line-height:2">` +
+  `<span style="color:#64748b;font-weight:700;min-width:22px;display:inline-block">KR</span>` +
+  `<span style="color:#f59e0b;font-weight:800">${krWarnCnt}건</span>` +
+  `<span style="color:#94a3b8;font-size:10px"> 경고</span>` +
+  `<span style="color:#cbd5e1;margin:0 5px">/</span>` +
+  `<span style="color:#f87171;font-weight:800">${krDelayCnt}건</span>` +
+  `<span style="color:#94a3b8;font-size:10px"> 지연</span></div>` +
+  `<div style="font-size:13px;line-height:2">` +
+  `<span style="color:#64748b;font-weight:700;min-width:22px;display:inline-block">CN</span>` +
+  `<span style="color:#f59e0b;font-weight:800">${cnWarnCnt}건</span>` +
+  `<span style="color:#94a3b8;font-size:10px"> 경고</span>` +
+  `<span style="color:#cbd5e1;margin:0 5px">/</span>` +
+  `<span style="color:#f87171;font-weight:800">${cnDelayCnt}건</span>` +
+  `<span style="color:#94a3b8;font-size:10px"> 지연</span></div>`;
+
+// 필터 버튼 건수 표시
+document.getElementById('btn-kr-delayed').textContent = `KR 지연 (${krDelayCnt}건)`;
+document.getElementById('btn-cn-delayed').textContent = `CN 지연 (${cnDelayCnt}건)`;
+document.getElementById('btn-na').textContent = `미제작 (${naSku}건)`;
+
+// ── AI 인사이트 ──────────────────────────────────────────
+(function renderInsights(){
+  const DUE  = '2026-04-02';
+  const SHOW = '2026-04-08';
+
+  /* ── 기본 집계 ── */
+  const naStyleSet     = new Set(AD.filter(d=>d.is_na).map(d=>d.style_code));
+  const naStyleCntIns  = naStyleSet.size;
+  const activeAD       = AD.filter(d=>!d.is_na);
+  const totalStyles    = D.total_styles;  // 전체 M (N/A 포함)
+  const totalSku       = AD.length;
+  const totalPcs       = AD.reduce((s,d)=>s+(d.ttl_pcs||0), 0);
+
+  /* ── TBD (N/A 제외, kr_expected 없는 것) ── */
+  const tbdStyleSet = new Set(activeAD.filter(d=>!d.kr_expected).map(d=>d.style_code).filter(Boolean));
+  const tbdStyleCnt = tbdStyleSet.size;
+  const tbdStyleList = [...tbdStyleSet].sort().slice(0,5).join(', ')
+    + (tbdStyleSet.size > 5 ? ` 외 ${tbdStyleSet.size-5}건` : '');
+
+  /* ── KR / CN 달성률: 차트와 동일한 buildDist 방식으로 계산 ── */
+  function calcCumPct(field, targetDate){
+    const dist = buildDist(field, 'all');
+    const dated = Object.entries(dist).filter(([k])=>k!=='TBD'&&k!=='N/A').sort((a,b)=>a[0]<b[0]?-1:1);
+    const total  = dated.reduce((s,[,v])=>s+v, 0);
+    let cumCnt = 0;
+    dated.forEach(([dt,cnt])=>{ if(dt <= targetDate) cumCnt += cnt; });
+    return total > 0 ? (cumCnt / total * 100).toFixed(1) : '0.0';
+  }
+  const krDuePct  = calcCumPct('kr_expected', DUE);
+  const cnShowPct = calcCumPct('cn_rdd', SHOW);
+  // 달성 M 수: DUE 이하 고유 style 수 (표시용)
+  const krDueM = new Set(activeAD.filter(d=>d.kr_expected && d.kr_expected <= DUE).map(d=>d.style_code)).size;
+  const cnShowM = new Set(activeAD.filter(d=>d.cn_rdd && d.cn_rdd <= SHOW).map(d=>d.style_code)).size;
+
+  /* ── KR 실입고 (M 기준) ── */
+  const arrivedStyleSet = new Set(AD.filter(d=>d.kr_actual).map(d=>d.style_code));
+  const arrivedM    = arrivedStyleSet.size;
+  const arrivedPct  = totalStyles > 0 ? Math.round(arrivedM / totalStyles * 100) : 0;
+
+  /* ── 4/2 DUE 초과 ITEM (N/A 제외) ── */
+  const overdueItemSet = new Set(
+    activeAD.filter(d=>d.kr_expected && d.kr_expected > DUE).map(d=>d.item_type||'-')
+  );
+  const overdueItems = [...overdueItemSet].join(', ') || '없음';
+
+  /* ── 벤더별 집계 (N/A 제외, M 기준) ── */
+  const vendStat = {};
+  activeAD.forEach(d=>{
+    const v = d.vendor||'미지정';
+    if(!vendStat[v]) vendStat[v]={styles:new Set(),krDue:new Set(),tbd:new Set()};
+    vendStat[v].styles.add(d.style_code);
+    if(d.kr_expected && d.kr_expected <= DUE) vendStat[v].krDue.add(d.style_code);
+    if(!d.kr_expected) vendStat[v].tbd.add(d.style_code);
+  });
+
+  // 달성률 낮은 벤더 TOP3 (KR DUE 기준, 100% 미만)
+  const lowVend = Object.entries(vendStat)
+    .filter(([,s])=>s.styles.size>0)
+    .map(([name,s])=>{
+      const denom = s.styles.size - s.tbd.size;
+      const pct   = denom > 0 ? Math.round(s.krDue.size / denom * 100) : 0;
+      return {name, pct, due:s.krDue.size, total:s.styles.size};
+    })
+    .filter(s=>s.pct < 100)
+    .sort((a,b)=>a.pct-b.pct).slice(0,3);
+
+  // TBD 있는 벤더 TOP3
+  const tbdVendRank = Object.entries(vendStat)
+    .filter(([,s])=>s.tbd.size>0)
+    .map(([name,s])=>({name, cnt:s.tbd.size}))
+    .sort((a,b)=>b.cnt-a.cnt).slice(0,3);
+
+  /* ── 긍정 ITEM (item_type 기준 KR DUE 내 전 SKU 예정된 것) ── */
+  const itemTypes = [...new Set(activeAD.map(d=>d.item_type).filter(Boolean))];
+  const onTimeItems = itemTypes.filter(it=>{
+    const rows = activeAD.filter(d=>d.item_type===it);
+    return rows.length > 0 && rows.every(d=>d.kr_expected && d.kr_expected <= DUE);
+  });
+
+  // 우수 벤더 (KR DUE 달성률 100%)
+  const goodVend = Object.entries(vendStat)
+    .map(([name,s])=>{
+      const denom = s.styles.size - s.tbd.size;
+      const pct   = denom > 0 ? Math.round(s.krDue.size / denom * 100) : 0;
+      return {name, pct, due:s.krDue.size, total:s.styles.size};
+    })
+    .filter(s=>s.pct === 100 && s.total > 0)
+    .sort((a,b)=>b.total-a.total).slice(0,5);
+
+  /* ── HTML 생성 ── */
+  function item(bullet, html){ return `<div class="insight-item"><span class="insight-bullet">${bullet}</span><span>${html}</span></div>`; }
+
+  // 블록 1 — 전체 현황 요약
+  const b1 = `
+  <div class="insight-block insight-summary">
+    <div class="insight-block-title">📋 전체 현황 요약 <span style="font-size:10px;font-weight:400;color:#8893b0">M 기준 · 입고예정일 기준</span></div>
+    ${item('▸', `총 <span class="insight-val">${totalStyles}M</span> / <span class="insight-val">${totalSku}SKU</span> / <span class="insight-val">${totalPcs.toLocaleString()}PCS</span>`)}
+    ${item('▸', `KR 입고 DUE <span class="insight-val">(4/2)</span> 기준 달성률 — <span class="insight-val" style="color:#3b5fcb">${krDueM}M / ${krDuePct}%</span>`)}
+    ${item('▸', `CN TRADE SHOW <span class="insight-val">(4/8)</span> 기준 달성률 — <span class="insight-val" style="color:#7c5fc0">${cnShowM}M / ${cnShowPct}%</span>`)}
+    ${tbdStyleCnt > 0 ? item('▸', `TBD(미정) <span class="insight-val" style="color:#f59e0b">${tbdStyleCnt}M</span> — 별도 확인 필요`) : ''}
+    ${naStyleCntIns > 0 ? item('▸', `미제작 협의 <span class="insight-val" style="color:#64748b">${naStyleCntIns}M</span> 있음`) : ''}
+  </div>`;
+
+  // 블록 2 — 위험 알림
+  const krWarnRow  = krWarnCnt>0  ? item('▲', `KR <span style="color:#f59e0b;font-weight:700">경고 ${krWarnCnt}건</span> <span class="insight-muted">— 4/3~4/5 예정 (품평 가능, 일정 주의)</span>`) : '';
+  const krDelayRow = krDelayCnt>0 ? item('●', `KR <span style="color:#dc2626;font-weight:700">지연 ${krDelayCnt}건</span> <span class="insight-muted">— 4/6 이후 예정 (품평 불가 위험)</span>`) : '';
+  const cnWarnRow  = cnWarnCnt>0  ? item('▲', `CN <span style="color:#f59e0b;font-weight:700">경고 ${cnWarnCnt}건</span> <span class="insight-muted">— 4/3~4/7 RDD (TRADE SHOW 가능, 주의)</span>`) : '';
+  const cnDelayRow = cnDelayCnt>0 ? item('●', `CN <span style="color:#dc2626;font-weight:700">지연 ${cnDelayCnt}건</span> <span class="insight-muted">— 4/8 이후 RDD (TRADE SHOW 불가 위험)</span>`) : '';
+  const noRisk = !krWarnCnt && !krDelayCnt && !cnWarnCnt && !cnDelayCnt;
+  const b2 = `
+  <div class="insight-block insight-danger">
+    <div class="insight-block-title">🚨 위험 알림</div>
+    ${item('●', `<span class="insight-val" style="color:#dc2626">4/2 DUE 초과 예정 ITEM</span> — ${overdueItems}`)}
+    ${tbdStyleCnt>0 ? item('●', `<span class="insight-val" style="color:#dc2626">미정(TBD) ${tbdStyleCnt}M</span> — 품번: <span class="insight-muted">${tbdStyleList}</span>`) : item('✓', `미정(TBD) 없음 <span class="insight-muted">— 전체 입고예정일 입력 완료</span>`)}
+    ${krDelayRow}${krWarnRow}${cnDelayRow}${cnWarnRow}
+    ${noRisk ? item('✓', `KR / CN 경고·지연 없음`) : ''}
+  </div>`;
+
+  // 블록 3 — 벤더 주의
+  const lowVendRows = lowVend.map(s=>item('▲', `<span class="insight-val" style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;vertical-align:bottom">${s.name}</span> — KR DUE 달성률 <span style="color:#d97706;font-weight:700">${s.pct}%</span> <span class="insight-muted">(${s.due}/${s.total}M)</span>`)).join('');
+  const tbdVendRows = tbdVendRank.map(s=>item('▲', `<span class="insight-val">${s.name}</span> — TBD <span style="color:#d97706;font-weight:700">${s.cnt}M</span> 미정`)).join('');
+  const b3 = `
+  <div class="insight-block insight-warning">
+    <div class="insight-block-title">⚠️ 벤더별 주의 필요</div>
+    ${lowVendRows||item('✓','전 벤더 KR DUE 달성 완료')}
+    ${tbdVendRank.length>0 ? `<div style="margin-top:6px;font-size:11px;color:#d97706;font-weight:700">TBD 보유 벤더</div>${tbdVendRows}` : item('✓','TBD 없는 벤더 없음')}
+  </div>`;
+
+  // 블록 4 — 긍정 현황
+  const goodRows = goodVend.map(s=>item('★', `<span class="insight-val">${s.name}</span> — KR DUE 달성률 <span style="color:#059669;font-weight:700">${s.pct}%</span> <span class="insight-muted">(${s.due}/${s.total}M)</span>`)).join('');
+  const b4 = `
+  <div class="insight-block insight-success">
+    <div class="insight-block-title">✅ 긍정 현황</div>
+    ${parseFloat(krDuePct)>=80 ? item('✓', `KR 입고 DUE <span class="insight-val">(4/2)</span> 기준 달성률 <span class="insight-val" style="color:#059669">${krDuePct}%</span> — 목표 달성 예상 ✓`) : item('—', `KR 입고 DUE (4/2) 달성률 <span style="color:#f59e0b;font-weight:700">${krDuePct}%</span> — 목표 미달 주의`)}
+    ${parseFloat(cnShowPct)>=80 ? item('✓', `CN TRADE SHOW <span class="insight-val">(4/8)</span> 기준 달성률 <span class="insight-val" style="color:#059669">${cnShowPct}%</span> — 목표 달성 예상 ✓`) : item('—', `CN TRADE SHOW (4/8) 달성률 <span style="color:#f59e0b;font-weight:700">${cnShowPct}%</span> — 목표 미달 주의`)}
+    ${onTimeItems.length>0
+      ? item('✓', `KR DUE(4/2) 내 전체 입고 예정 ITEM — <span class="insight-val" style="color:#059669">${onTimeItems.join(', ')}</span> <span class="insight-muted">(${onTimeItems.length}개)</span>`)
+      : item('—', `전 SKU KR DUE(4/2) 내 완료 ITEM 없음`)
+    }
+    ${goodRows}
+  </div>`;
+
+  document.getElementById('insight-grid').innerHTML = b1+b2+b3+b4;
+})();
+
+function toggleInsight(){
+  const body  = document.getElementById('insight-body');
+  const arrow = document.getElementById('insight-arrow');
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  arrow.textContent = isOpen ? '▼ 펼치기' : '▲ 접기';
+}
+
+// ── 카테고리 진행률 ──────────────────────────────────────
+const CAT_COLOR = { KNIT:'#60a5fa', WOVEN:'#a78bfa', DENIM:'#fbbf24' };
+const catStat = {};
+AD.forEach(d=>{
+  const s = d.sort||'기타';
+  if(!catStat[s]) catStat[s]={total:0,arrived:0,delayed:0,pcs:0};
+  catStat[s].total++;
+  catStat[s].pcs += d.ttl_pcs||0;
+  if(d.kr_actual) catStat[s].arrived++;
+  if(isDelayed(d)) catStat[s].delayed++;
+});
+
+const catEl = document.getElementById('cat-progress');
+['KNIT','WOVEN','DENIM'].forEach(c=>{
+  const s = catStat[c]||{total:0,arrived:0,delayed:0,pcs:0};
+  const pct = s.total>0 ? Math.round(s.arrived/s.total*100):0;
+  const col = CAT_COLOR[c];
+  catEl.innerHTML+=`
+  <div class="cat-item">
+    <div class="cat-header">
+      <div class="cat-name">
+        <span class="cat-dot" style="background:${col}"></span>${c}
+      </div>
+      <div class="cat-nums"><strong>${s.arrived}</strong> / ${s.total} SKU &nbsp;·&nbsp; ${s.pcs} PCS</div>
+    </div>
+    <div class="pbar"><div class="pbar-fill" style="width:${pct}%;background:${col}"></div></div>
+    <div class="cat-stats">
+      입고완료 <span style="color:${col}">${s.arrived}</span>
+      &nbsp;미입고 <span>${s.total-s.arrived}</span>
+      &nbsp;진행률 <span style="color:${col}">${pct}%</span>
+      ${s.delayed>0?`&nbsp;지연 <span style="color:#f87171">${s.delayed}</span>`:''}
+    </div>
+  </div>`;
+});
+
+// ── 날짜 분포 리스트 ─────────────────────────────────────
+function renderDateList(elId, dist, color, pastColor){
+  const el = document.getElementById(elId);
+  const tbdCnt  = dist['TBD'] || 0;
+  const naCnt   = dist['N/A'] || 0;
+  const dated   = Object.entries(dist).filter(([k])=>k!=='TBD'&&k!=='N/A').sort((a,b)=>a[0]<b[0]?-1:1);
+  // 누계% 분모: 날짜 있는 것만 (TBD, N/A 제외)
+  const total   = dated.reduce((s,[,v])=>s+v, 0);
+  const maxAll  = Math.max(...Object.values(dist), 1);
+  let cumCnt = 0;
+  dated.forEach(([dt, cnt])=>{
+    cumCnt += cnt;
+    const past     = dt < TODAY;
+    const barPct   = Math.round(cnt / maxAll * 100);
+    const sharePct = total > 0 ? (cnt / total * 100).toFixed(1) : '0.0';
+    const cumPct   = total > 0 ? (cumCnt / total * 100).toFixed(1) : '0.0';
+    const cumColor = parseFloat(cumPct) >= 100 ? '#34d399'
+                   : parseFloat(cumPct) >= 80  ? '#60a5fa'
+                   : '#fbbf24';
+    el.innerHTML+=`
+    <div class="date-row">
+      <div class="dr-date ${past?'dr-past':''}">${dt}${past?' <small>(경과)</small>':''}</div>
+      <div class="dr-bar"><div class="dr-fill" style="width:${barPct}%;background:${past?pastColor:color};opacity:${past?0.4:1}"></div></div>
+      <div class="dr-count">${cnt}M</div>
+      <div class="dr-pct">${sharePct}%</div>
+      <div class="dr-cum" style="color:${past?'#94a3b8':cumColor}">누계 ${cumPct}%</div>
+    </div>`;
+  });
+  // TBD 항목
+  if(tbdCnt > 0){
+    const tbdBar = Math.round(tbdCnt / maxAll * 100);
+    el.innerHTML+=`
+    <div class="date-row" style="border-top:1px dashed #d1d5e8;margin-top:4px;padding-top:8px;opacity:0.75">
+      <div class="dr-date" style="color:#94a3b8">미정(TBD)</div>
+      <div class="dr-bar"><div class="dr-fill" style="width:${tbdBar}%;background:#cbd5e1"></div></div>
+      <div class="dr-count" style="color:#94a3b8">${tbdCnt}M</div>
+      <div class="dr-pct" style="color:#94a3b8">제외</div>
+      <div class="dr-cum" style="color:#94a3b8">-</div>
+    </div>`;
+  }
+  // N/A(미제작) 항목 — 별도 표시
+  if(naCnt > 0){
+    const naBar = Math.round(naCnt / maxAll * 100);
+    el.innerHTML+=`
+    <div class="date-row" style="border-top:1px dashed #d1d5e8;margin-top:4px;padding-top:8px;opacity:0.55">
+      <div class="dr-date" style="color:#94a3b8">N/A(미제작)</div>
+      <div class="dr-bar"><div class="dr-fill" style="width:${naBar}%;background:#e2e8f0"></div></div>
+      <div class="dr-count" style="color:#94a3b8">${naCnt}M</div>
+      <div class="dr-pct" style="color:#94a3b8">제외</div>
+      <div class="dr-cum" style="color:#94a3b8">-</div>
+    </div>`;
+  }
+}
+
+// ── DUE DATE 누계 요약 박스 ──────────────────────────────
+function renderDueSummary(summaryId, dist, dues){
+  const el = document.getElementById(summaryId);
+  if(!el) return;
+  const tbdCnt = dist['TBD'] || 0;
+  const naCnt  = dist['N/A'] || 0;
+  // 분모: TBD·N/A 제외 (날짜 있는 것만)
+  const sorted = Object.entries(dist).filter(([k])=>k!=='TBD'&&k!=='N/A').sort((a,b)=>a[0]<b[0]?-1:1);
+  const total  = sorted.reduce((s,[,v])=>s+v, 0);
+
+  let html = '<div class="due-summary-title">DUE DATE 기준 누계 <span style="font-size:10px;color:#94a3b8">(TBD·N/A 제외)</span></div>';
+  dues.forEach(({label, date})=>{
+    let cumCnt = 0;
+    sorted.forEach(([dt, cnt])=>{ if(dt <= date) cumCnt += cnt; });
+    const cumPct = total > 0 ? (cumCnt / total * 100).toFixed(1) : '0.0';
+    const valColor = parseFloat(cumPct) >= 100 ? '#34d399'
+                   : parseFloat(cumPct) >= 80  ? '#60a5fa'
+                   : '#f87171';
+    html += `
+    <div class="due-row">
+      <div class="due-label">${label} <span style="color:var(--muted);font-weight:400;font-size:11px">(~${date})</span></div>
+      <div class="due-val" style="color:${valColor}">${cumPct}%</div>
+    </div>`;
+  });
+  // TBD 별도 표시
+  if(tbdCnt > 0){
+    html += `
+    <div class="due-row" style="border-top:1px dashed #d1d5e8;margin-top:4px;padding-top:6px">
+      <div class="due-label" style="color:#94a3b8">미정(TBD)</div>
+      <div class="due-val" style="color:#94a3b8">${tbdCnt}M / 제외</div>
+    </div>`;
+  }
+  // N/A 별도 표시
+  if(naCnt > 0){
+    html += `
+    <div class="due-row" style="opacity:0.65">
+      <div class="due-label" style="color:#94a3b8">N/A(미제작)</div>
+      <div class="due-val" style="color:#94a3b8">${naCnt}M / 제외</div>
+    </div>`;
+  }
+  el.innerHTML = html;
+}
+
+// ── 카테고리 필터 시스템 ──────────────────────────────────
+const SECTION_CFG = {
+  etd: {
+    listId:'cn-etd-list', summaryId:'etd-summary', field:'cn_etd',
+    color:'#60a5fa', pastColor:'#94a3b8',
+    dues:[
+      { label:'입고 DUE',   date:'2026-04-02' },
+      { label:'CEO 품평회', date:'2026-04-06' }
+    ]
+  },
+  rdd: {
+    listId:'cn-rdd-list', summaryId:'rdd-summary', field:'cn_rdd',
+    color:'#7c5fc0', pastColor:'#94a3b8',
+    dues:[
+      { label:'CN 입고 DUE',    date:'2026-04-02' },
+      { label:'CN TRADE SHOW', date:'2026-04-08' }
+    ]
+  },
+  kr: {
+    listId:'kr-exp-list', summaryId:'kr-summary', field:'kr_expected',
+    color:'#34d399', pastColor:'#94a3b8',
+    dues:[
+      { label:'KR 입고 DUE', date:'2026-04-02' },
+      { label:'CEO 품평회',  date:'2026-04-06' }
+    ]
+  }
+};
+
+function buildDist(field, cat){
+  // style_code 기준 중복 제거 집계 (Set per date)
+  // N/A 아이템 → 'N/A' bucket, 날짜 없는 건 → 'TBD'
+  const sets = {};
+  AD.forEach(d=>{
+    if(cat !== 'all' && d.sort !== cat) return;
+    if(!d.style_code) return;
+    if(d.is_na){
+      if(!sets['N/A']) sets['N/A'] = new Set();
+      sets['N/A'].add(d.style_code);
+      return;
+    }
+    const dt = d[field] || 'TBD';
+    if(!sets[dt]) sets[dt] = new Set();
+    sets[dt].add(d.style_code);
+  });
+  // Set → count 변환
+  const dist = {};
+  Object.entries(sets).forEach(([dt, s])=>{ dist[dt] = s.size; });
+  return dist;
+}
+
+function renderSection(section, cat){
+  const cfg = SECTION_CFG[section];
+  const dist = buildDist(cfg.field, cat);
+  document.getElementById(cfg.listId).innerHTML = '';
+  renderDateList(cfg.listId, dist, cfg.color, cfg.pastColor);
+  renderDueSummary(cfg.summaryId, dist, cfg.dues);
+  // ETD 섹션은 CO 카운트도 갱신 (고유 style_code 기준)
+  if(section === 'etd'){
+    const coSets = {CN:new Set(), VN:new Set(), KR:new Set()};
+    AD.forEach(d=>{
+      if(cat !== 'all' && d.sort !== cat) return;
+      if(d.cn_etd && d.style_code && coSets[d.co] !== undefined) coSets[d.co].add(d.style_code);
+    });
+    document.getElementById('co-cn-cnt').textContent = coSets.CN.size + 'M ';
+    document.getElementById('co-vn-cnt').textContent = coSets.VN.size + 'M ';
+    document.getElementById('co-kr-cnt').textContent = coSets.KR.size + 'M ';
+  }
+}
+
+function switchCatTab(section, cat, btn){
+  btn.closest('.cat-tabs').querySelectorAll('.cat-tab')
+    .forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderSection(section, cat);
+}
+
+// 초기 렌더
+renderSection('etd', 'all');
+renderSection('rdd', 'all');
+renderSection('kr',  'all');
+
+// ── 탭 ──────────────────────────────────────────────────
+function switchTab(name){
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// ── 담당자 테이블 ────────────────────────────────────────
+const spStat = {};
+AD.forEach(d=>{
+  const sp = d.sourcing||'미지정';
+  if(!spStat[sp]) spStat[sp]={total:0,arrived:0,cn_sent:0,delayed:0,pcs:0,styles:new Set()};
+  spStat[sp].total++;
+  spStat[sp].pcs += d.ttl_pcs||0;
+  spStat[sp].styles.add(d.style_code);
+  if(d.kr_actual) spStat[sp].arrived++;
+  if(d.cn_atd)   spStat[sp].cn_sent++;
+  if(isDelayed(d)) spStat[sp].delayed++;
+});
+
+const spOrder = Object.entries(spStat).sort((a,b)=>b[1].total-a[1].total);
+const staffTb = document.getElementById('staff-tbody');
+spOrder.forEach(([name,s])=>{
+  const pct = s.total>0?Math.round(s.arrived/s.total*100):0;
+  const col = barColor(pct, s.delayed);
+  let badge = s.delayed>0 ? `<span class="badge-delay">지연 ${s.delayed}건</span>`
+            : pct===100   ? `<span class="badge-done">완료</span>`
+            :               `<span class="badge-pending">진행중</span>`;
+  staffTb.innerHTML+=`
+  <tr onclick="filterByStaff('${name}')">
+    <td style="font-weight:700">${name}</td>
+    <td>${s.styles.size}</td>
+    <td>${s.total}</td>
+    <td>${s.pcs}</td>
+    <td style="color:#065f46;font-weight:600">${s.arrived}</td>
+    <td>${s.cn_sent}</td>
+    <td style="color:${s.delayed>0?'#991b1b':'#8893b0'}">${s.delayed}</td>
+    <td><div class="mini-wrap">
+      <div class="mini-bar"><div class="mini-fill" style="width:${pct}%;background:${col}"></div></div>
+      <span class="pct-txt" style="color:${col}">${pct}%</span>
+    </div></td>
+    <td>${badge}</td>
+  </tr>`;
+});
+
+// ── 벤더 테이블 ──────────────────────────────────────────
+const vStat = {};
+AD.forEach(d=>{
+  const v = d.vendor||'미지정';
+  if(!vStat[v]) vStat[v]={total:0,arrived:0,cn_sent:0,delayed:0,styles:new Set(),sorts:new Set()};
+  vStat[v].total++;
+  vStat[v].styles.add(d.style_code);
+  vStat[v].sorts.add(d.sort);
+  if(d.kr_actual) vStat[v].arrived++;
+  if(d.cn_atd)   vStat[v].cn_sent++;
+  if(isDelayed(d)) vStat[v].delayed++;
+});
+
+const vOrder = Object.entries(vStat).sort((a,b)=>b[1].total-a[1].total);
+document.getElementById('vendor-badge').textContent = vOrder.length+'개 벤더';
+const vendorTb = document.getElementById('vendor-tbody');
+vOrder.forEach(([name,s])=>{
+  const pct = s.total>0?Math.round(s.arrived/s.total*100):0;
+  const col = barColor(pct, s.delayed);
+  let badge = s.delayed>0 ? `<span class="badge-delay">지연 ${s.delayed}건</span>`
+            : pct===100   ? `<span class="badge-done">완료</span>`
+            :               `<span class="badge-pending">진행중</span>`;
+  vendorTb.innerHTML+=`
+  <tr>
+    <td style="font-weight:600;max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${name}</td>
+    <td>${s.styles.size}</td>
+    <td>${s.total}</td>
+    <td><small style="color:var(--muted)">${[...s.sorts].join('/')}</small></td>
+    <td style="color:#065f46;font-weight:600">${s.arrived}</td>
+    <td>${s.cn_sent}</td>
+    <td style="color:${s.delayed>0?'#991b1b':'#8893b0'}">${s.delayed}</td>
+    <td><div class="mini-wrap">
+      <div class="mini-bar"><div class="mini-fill" style="width:${pct}%;background:${col}"></div></div>
+      <span class="pct-txt" style="color:${col}">${pct}%</span>
+    </div></td>
+    <td>${badge}</td>
+  </tr>`;
+});
+
+// ── 디자이너 테이블 ───────────────────────────────────────
+const dsnStat = {};
+AD.forEach(d=>{
+  const dsn = d.designer||'미지정';
+  if(!dsnStat[dsn]) dsnStat[dsn]={total:0,arrived:0,cn_sent:0,delayed:0,styles:new Set(),sorts:new Set()};
+  dsnStat[dsn].total++;
+  dsnStat[dsn].styles.add(d.style_code);
+  dsnStat[dsn].sorts.add(d.sort);
+  if(d.kr_actual) dsnStat[dsn].arrived++;
+  if(d.cn_atd)    dsnStat[dsn].cn_sent++;
+  if(isDelayed(d)) dsnStat[dsn].delayed++;
+});
+
+const dsnOrder = Object.entries(dsnStat).sort((a,b)=>b[1].total-a[1].total);
+document.getElementById('designer-badge').textContent = dsnOrder.length+'명';
+const designerTb = document.getElementById('designer-tbody');
+dsnOrder.forEach(([name,s])=>{
+  const pct = s.total>0?Math.round(s.arrived/s.total*100):0;
+  const col = barColor(pct, s.delayed);
+  let badge = s.delayed>0 ? `<span class="badge-delay">지연 ${s.delayed}건</span>`
+            : pct===100   ? `<span class="badge-done">완료</span>`
+            :               `<span class="badge-pending">진행중</span>`;
+  designerTb.innerHTML+=`
+  <tr>
+    <td style="font-weight:600">${name}</td>
+    <td>${s.styles.size}</td>
+    <td>${s.total}</td>
+    <td><small style="color:var(--muted)">${[...s.sorts].join('/')}</small></td>
+    <td style="color:#065f46;font-weight:600">${s.arrived}</td>
+    <td>${s.cn_sent}</td>
+    <td style="color:${s.delayed>0?'#991b1b':'#8893b0'}">${s.delayed}</td>
+    <td><div class="mini-wrap">
+      <div class="mini-bar"><div class="mini-fill" style="width:${pct}%;background:${col}"></div></div>
+      <span class="pct-txt" style="color:${col}">${pct}%</span>
+    </div></td>
+    <td>${badge}</td>
+  </tr>`;
+});
+
+// ── ITEM 피벗 테이블 ──────────────────────────────────────
+const DUE_DATE = '2026-04-02';
+
+// 1. 고유 ITEM 코드 & KR 입고예정일 수집 (날짜 없는 건 → 'TBD')
+const pivotItemSet = new Set();
+const pivotDateSet = new Set();
+AD.forEach(d=>{
+  if(d.item_type) pivotItemSet.add(d.item_type);
+  pivotDateSet.add(d.kr_expected || 'TBD');
+});
+const pivotItems = [...pivotItemSet].sort();
+// 날짜 오름차순 정렬, TBD는 맨 끝
+const pivotDates = [...pivotDateSet].filter(d=>d!=='TBD').sort();
+if(pivotDateSet.has('TBD')) pivotDates.push('TBD');
+
+// 2. 집계: pivot[item][date] = Set<style_code> (중복 제거 스타일수)
+//    rowSet[item]  = 해당 ITEM 전체 고유 스타일 Set
+//    colSet[date]  = 해당 날짜 고유 스타일 Set
+//    delayMap[item] = 지연 SKU 수
+const pivot    = {};
+const rowSet   = {};
+const colSet   = {};
+const delayMap = {};
+const grandSet = new Set();
+pivotItems.forEach(it=>{ pivot[it]={}; rowSet[it]=new Set(); delayMap[it]=0;
+  pivotDates.forEach(dt=>{ pivot[it][dt]=new Set(); }); });
+pivotDates.forEach(dt=>{ colSet[dt]=new Set(); });
+
+AD.forEach(d=>{
+  const it = d.item_type, dt = d.kr_expected || 'TBD', sc = d.style_code;
+  if(!it || !sc) return;
+  pivot[it][dt].add(sc);
+  rowSet[it].add(sc);
+  colSet[dt].add(sc);
+  grandSet.add(sc);
+  if(isDelayed(d)) delayMap[it]++;
+});
+
+// Set → count 헬퍼
+const rowTotal  = Object.fromEntries(pivotItems.map(it=>[it, rowSet[it].size]));
+const colTotal  = Object.fromEntries(pivotDates.map(dt=>[dt, colSet[dt].size]));
+const grandTotal = grandSet.size;
+
+document.getElementById('item-badge').textContent = pivotItems.length+'개 ITEM';
+
+// 3. 피벗 테이블 HTML 생성 (Class 그룹 + 소계)
+(function(){
+  // ── Class 매핑 & 소계용 Set 구축 ──
+  const CLASS_ORDER = ['OUTER','INNER','BOTTOM','TOP','DRESS','SET','ACC'];
+  const itemToClass   = {};  // item_type → class_
+  const clsPivot      = {};  // class_ → date → Set<style_code>
+  const clsRowSet     = {};  // class_ → Set<style_code>
+
+  AD.forEach(d=>{
+    const it = d.item_type, cls = d.class_||'기타', sc = d.style_code, dt = d.kr_expected||'TBD';
+    if(!it||!sc) return;
+    if(!itemToClass[it]) itemToClass[it] = cls;
+    if(!clsPivot[cls])   clsPivot[cls]   = {};
+    if(!clsPivot[cls][dt]) clsPivot[cls][dt] = new Set();
+    clsPivot[cls][dt].add(sc);
+    if(!clsRowSet[cls]) clsRowSet[cls] = new Set();
+    clsRowSet[cls].add(sc);
+  });
+
+  // Class 정렬 (정해진 순서 우선, 나머지 알파벳)
+  const allClasses = [...new Set(Object.values(itemToClass))].sort((a,b)=>{
+    const ai=CLASS_ORDER.indexOf(a), bi=CLASS_ORDER.indexOf(b);
+    if(ai>=0&&bi>=0) return ai-bi;
+    if(ai>=0) return -1; if(bi>=0) return 1;
+    return a.localeCompare(b);
+  });
+
+  // Class별 ITEM 목록 (rowTotal 내림차순)
+  const itemsByClass = {};
+  allClasses.forEach(cls=>{ itemsByClass[cls]=[]; });
+  pivotItems.forEach(it=>{
+    const cls = itemToClass[it]||'기타';
+    if(!itemsByClass[cls]) itemsByClass[cls]=[];
+    itemsByClass[cls].push(it);
+  });
+  allClasses.forEach(cls=>{ itemsByClass[cls].sort((a,b)=>rowTotal[b]-rowTotal[a]); });
+
+  const totalCols = pivotDates.length + 2; // ITEM + 날짜들 + 합계
+
+  // ── 헤더 ──
+  let html = `<table class="pivot-tbl"><thead><tr>
+    <th class="item-label">ITEM</th>
+    ${pivotDates.map(dt=>{
+      const isTbd=dt==='TBD', isNa=dt==='N/A', isDue=dt===DUE_DATE;
+      const mm  = isTbd?'미정(TBD)' : isNa?'N/A(미제작)' : dt.slice(5).replace('-','/');
+      const attr= isTbd?'style="background:#f1f5f9;color:#94a3b8"'
+                : isNa?'style="background:#f5f0ff;color:#7c3aed;font-style:italic"'
+                : isDue?'class="th-due"':'';
+      return `<th ${attr}>${mm}${isDue?' ★':''}</th>`;
+    }).join('')}
+    <th class="col-total-th">합계</th>
+  </tr></thead><tbody>`;
+
+  // ── Class 그룹별 행 ──
+  allClasses.forEach(cls=>{
+    const items    = itemsByClass[cls]||[];
+    if(!items.length) return;
+    const clsTotal = clsRowSet[cls]?clsRowSet[cls].size:0;
+
+    // 그룹 헤더
+    html += `<tr><td class="class-header" colspan="${totalCols}">
+      📁 ${cls} <span style="font-weight:400;opacity:0.65;font-size:10px">${clsTotal}M</span>
+    </td></tr>`;
+
+    // ITEM 데이터 행
+    items.forEach(it=>{
+      const total=rowTotal[it], delayed=delayMap[it];
+      html += `<tr>
+        <td class="item-label item-indent" style="${delayed>0?'color:#991b1b':''}">${it}${delayed>0?` <small style="color:#f87171;font-weight:400">(지연 ${delayed})</small>`:''}</td>
+        ${pivotDates.map(dt=>{
+          const cnt=pivot[it][dt].size;
+          if(!cnt) return `<td class="cell-empty">-</td>`;
+          const pct=total>0?Math.round(cnt/total*100):0;
+          const isTbd=dt==='TBD', isNa=dt==='N/A', past=!isTbd&&!isNa&&dt<TODAY, isDue=dt===DUE_DATE;
+          const cs=['cell-data',past?'cell-past':'',isDue?'cell-due':'',(!isTbd&&!isNa&&delayed>0)?'cell-delayed':''].join(' ');
+          const sy=isNa?' style="background:#f5f0ff"':isTbd?' style="background:#f8fafc"':'';
+          return `<td class="${cs}"${sy}><span class="p-val" style="${isNa?'color:#7c3aed':isTbd?'color:#94a3b8':''}">${cnt}M</span> <span class="p-pct">/ ${pct}%</span></td>`;
+        }).join('')}
+        <td class="col-total-td">${total}M</td>
+      </tr>`;
+    });
+
+    // 소계 행
+    html += `<tr class="class-subtotal-row">
+      <td class="item-label class-subtotal-label">▶ ${cls} 소계</td>
+      ${pivotDates.map(dt=>{
+        const cnt=(clsPivot[cls]&&clsPivot[cls][dt])?clsPivot[cls][dt].size:0;
+        if(!cnt) return `<td class="cell-empty class-subtotal-cell">-</td>`;
+        const isTbd=dt==='TBD', isNa=dt==='N/A', isDue=dt===DUE_DATE;
+        const pct=clsTotal>0?Math.round(cnt/clsTotal*100):0;
+        const sy=isNa?'background:#f5f0ff;color:#7c3aed':isTbd?'background:#f1f5f9;color:#94a3b8':isDue?'background:#dbeafe':'';
+        return `<td class="class-subtotal-cell" style="${sy}"><span class="p-val">${cnt}M</span> <span class="p-pct">/ ${pct}%</span></td>`;
+      }).join('')}
+      <td class="col-total-td" style="font-weight:800">${clsTotal}M</td>
+    </tr>`;
+  });
+
+  // ── 합계 행 (누계%) ── 스타일 중복 제거 누계
+  const cumSet = new Set();
+  html += `</tbody><tfoot><tr>
+    <td class="item-label" style="font-weight:800">합계</td>
+    ${pivotDates.map(dt=>{
+      const cnt=colTotal[dt], isTbd=dt==='TBD', isNa=dt==='N/A', isDue=dt===DUE_DATE;
+      if(!isTbd && !isNa) colSet[dt].forEach(sc=>cumSet.add(sc));
+      if(isTbd){
+        const p=grandTotal>0?(cnt/grandTotal*100).toFixed(1):'0.0';
+        return `<td style="background:#f1f5f9"><span class="p-val" style="color:#94a3b8">${cnt}M</span><span class="p-pct" style="color:#94a3b8"> / ${p}%</span></td>`;
+      }
+      if(isNa){
+        const p=grandTotal>0?(cnt/grandTotal*100).toFixed(1):'0.0';
+        return `<td style="background:#f5f0ff"><span class="p-val" style="color:#7c3aed">${cnt}M</span><span class="p-pct" style="color:#7c3aed"> / ${p}%</span></td>`;
+      }
+      const cumPct=grandTotal>0?Math.min(100,(cumSet.size/grandTotal*100)).toFixed(1):'0.0';
+      const cumColor=parseFloat(cumPct)>=80?'#7c5fc0':'#fbbf24';
+      return `<td style="${isDue?'background:#dbeafe':''}"><span class="p-val">${cnt}M</span><span class="p-pct" style="color:${cumColor}"> / 누계 ${cumPct}%</span></td>`;
+    }).join('')}
+    <td class="grand-td">${grandTotal}M</td>
+  </tr></tfoot></table>`;
+
+  document.getElementById('item-pivot').innerHTML = html;
+})();
+
+// ITEM DUE DATE 요약 박스
+(function(){
+  const totalItems = pivotItems.length;
+  const totalSku   = AD.length;
+  const dueItems   = pivotItems.filter(it=>{
+    const dates = AD.filter(d=>d.item_type===it&&d.kr_expected).map(d=>d.kr_expected);
+    return dates.length>0 && dates.every(dt=>dt<=DUE_DATE);
+  }).length;
+  const delayItems = pivotItems.filter(it=>delayMap[it]>0).length;
+  const dueSku     = AD.filter(d=>d.kr_expected && d.kr_expected<=DUE_DATE).length;
+  const delaySku   = AD.filter(d=>isDelayed(d)).length;
+
+  const duePct    = totalItems>0 ? (dueItems/totalItems*100).toFixed(1) : '0.0';
+  const dlayPct   = totalItems>0 ? (delayItems/totalItems*100).toFixed(1) : '0.0';
+  const dueSkuPct = totalSku>0   ? (dueSku/totalSku*100).toFixed(1) : '0.0';
+
+  document.getElementById('item-due-summary').innerHTML = `
+  <div class="due-summary-title">DUE DATE (4/2) 기준 요약</div>
+  <div class="due-row">
+    <div class="due-label">4/2 이내 전체 예정 ITEM <span style="color:var(--muted);font-weight:400;font-size:11px">(모든 SKU KR 입고예정 ≤ 4/2)</span></div>
+    <div class="due-val" style="color:${parseFloat(duePct)>=80?'#34d399':'#f87171'}">${dueItems}개 / ${totalItems}개 (${duePct}%)</div>
+  </div>
+  <div class="due-row">
+    <div class="due-label">전체 SKU 중 4/2 이내 입고 예정</div>
+    <div class="due-val" style="color:${parseFloat(dueSkuPct)>=80?'#60a5fa':'#fbbf24'}">${dueSku}건 / ${totalSku}건 (${dueSkuPct}%)</div>
+  </div>
+  <div class="due-row">
+    <div class="due-label">지연 발생 ITEM</div>
+    <div class="due-val" style="color:${delayItems>0?'#f87171':'#34d399'}">${delayItems}개 (${dlayPct}%) · SKU ${delaySku}건</div>
+  </div>`;
+})();
+
+// ── 차트 ─────────────────────────────────────────────────
+Chart.defaults.font.family = 'Malgun Gothic';
+Chart.defaults.color = '#8893b0';
+
+// 카테고리 도넛 차트
+const catLabels = ['KNIT','WOVEN','DENIM'];
+new Chart(document.getElementById('catChart'),{
+  type:'bar',
+  data:{
+    labels: catLabels,
+    datasets:[
+      { label:'입고완료', data: catLabels.map(c=>(catStat[c]||{}).arrived||0),
+        backgroundColor:'rgba(52,211,153,0.7)', borderRadius:5 },
+      { label:'미입고',   data: catLabels.map(c=>((catStat[c]||{}).total||0)-((catStat[c]||{}).arrived||0)),
+        backgroundColor:'rgba(147,197,253,0.65)', borderRadius:5 },
+    ]
+  },
+  options:{
+    responsive:true, plugins:{legend:{labels:{color:'#4a5568'}}},
+    scales:{
+      x:{stacked:true, grid:{color:'#f0f3fc'}, ticks:{color:'#4a5568'}},
+      y:{stacked:true, grid:{color:'#f0f3fc'}, ticks:{color:'#4a5568'}}
+    }
+  }
+});
+
+// 벤더 가로 막대
+new Chart(document.getElementById('staffChart'),{
+  type:'bar',
+  data:{
+    labels: vOrder.map(v=>v[0]),
+    datasets:[
+      { label:'미입고 SKU', data: vOrder.map(v=>v[1].total-v[1].arrived),
+        backgroundColor:'rgba(167,139,250,0.65)', borderRadius:4 },
+      { label:'입고 SKU',   data: vOrder.map(v=>v[1].arrived),
+        backgroundColor:'rgba(96,165,250,0.6)', borderRadius:4 },
+    ]
+  },
+  options:{
+    indexAxis:'y', responsive:true,
+    plugins:{legend:{labels:{color:'#4a5568'}}},
+    scales:{
+      x:{stacked:true, grid:{color:'#f0f3fc'}, ticks:{color:'#4a5568'}},
+      y:{stacked:true, grid:{display:false},   ticks:{color:'#1e2a4a'}}
+    }
+  }
+});
+
+// ── 상세 테이블 ──────────────────────────────────────────
+let statusFilter = 'all';
+
+// 필터 옵션 채우기
+const srcSel = document.getElementById('f-sourcing');
+spOrder.forEach(([name])=>{ const o=document.createElement('option'); o.value=o.textContent=name; srcSel.appendChild(o); });
+
+const dsnSel = document.getElementById('f-designer');
+[...new Set(AD.map(d=>d.designer).filter(Boolean))].sort()
+  .forEach(name=>{ const o=document.createElement('option'); o.value=o.textContent=name; dsnSel.appendChild(o); });
+
+const vSel = document.getElementById('f-vendor');
+vOrder.forEach(([name])=>{ const o=document.createElement('option'); o.value=o.textContent=name; vSel.appendChild(o); });
+
+function setStatusFilter(type, btn){
+  statusFilter = type;
+  document.querySelectorAll('.f-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderDetail();
+}
+
+function filterByStaff(name){
+  document.getElementById('f-sourcing').value = name;
+  statusFilter = 'all';
+  document.querySelectorAll('.f-btn').forEach((b,i)=>{ if(i===0) b.classList.add('active'); else b.classList.remove('active'); });
+  renderDetail();
+  document.querySelector('.detail-wrap').scrollIntoView({behavior:'smooth'});
+}
+
+function renderDetail(){
+  const sortF  = document.getElementById('f-sort').value;
+  const srcF   = document.getElementById('f-sourcing').value;
+  const dsnF   = document.getElementById('f-designer').value;
+  const vendF  = document.getElementById('f-vendor').value;
+  const coF    = document.getElementById('f-co').value;
+  const srch   = document.getElementById('f-search').value.toLowerCase();
+
+  const rows = AD.filter(d=>{
+    if(statusFilter==='arrived'    && !d.kr_actual) return false;
+    if(statusFilter==='pending'    && (d.kr_actual || d.is_na)) return false;
+    if(statusFilter==='kr_delayed' && !((!d.is_na) && (!d.kr_actual) && d.kr_expected && d.kr_expected >= KR_DELAY_S)) return false;
+    if(statusFilter==='cn_delayed' && !((!d.is_na) && (!d.kr_actual) && d.cn_rdd && d.cn_rdd >= CN_DELAY_S)) return false;
+    if(statusFilter==='na'         && !d.is_na) return false;
+    if(sortF && d.sort!==sortF) return false;
+    if(srcF  && d.sourcing!==srcF) return false;
+    if(dsnF  && d.designer!==dsnF) return false;
+    if(vendF && d.vendor!==vendF) return false;
+    if(coF   && d.co!==coF) return false;
+    if(srch){
+      const hay=[d.sku,d.style_code,d.description,d.color,d.vendor].join(' ').toLowerCase();
+      if(!hay.includes(srch)) return false;
+    }
+    return true;
+  });
+
+  document.getElementById('detail-badge').textContent = rows.length+'건';
+  const tb = document.getElementById('detail-tbody');
+  tb.innerHTML='';
+  rows.forEach((d,i)=>{
+    const delayed  = isDelayed(d);
+    const rowClass = d.is_na ? 'row-na' : (delayed ? 'row-delayed' : '');
+    const coBadge  = d.co==='CN'?'co-cn':d.co==='VN'?'co-vn':'co-kr';
+    // N/A 건은 날짜 표시 시 취소선 스타일
+    const naStyle  = d.is_na ? 'color:#94a3b8' : '';
+    const cnEtdStr = d.cn_etd === 'N/A' ? `<span style="${naStyle}">N/A</span>`
+                   : (d.cn_etd ? `<span style="color:${d.cn_etd<TODAY?'#94a3b8':'#60a5fa'};font-weight:600">${d.cn_etd}</span>` : '-');
+    const cnRddStr = d.cn_rdd === 'N/A' ? `<span style="${naStyle}">N/A</span>`
+                   : (d.cn_rdd ? `<span style="color:${d.cn_rdd<TODAY?'#94a3b8':'#7c5fc0'};font-weight:600">${d.cn_rdd}${d.transit_days?' <small style="color:#94a3b8">(+'+d.transit_days+'일)</small>':''}</span>` : '-');
+    const krExpStr = d.kr_expected === 'N/A' ? `<span style="${naStyle}">N/A</span>`
+                   : (d.kr_expected ? `<span style="color:${d.kr_expected<TODAY&&!d.kr_actual?'#f87171':'#1e2a4a'};font-weight:600">${d.kr_expected}${d.kr_expected<TODAY&&!d.kr_actual?' <span style="color:#f87171">!</span>':''}</span>` : '-');
+    tb.innerHTML+=`
+    <tr class="${rowClass}">
+      <td class="muted">${i+1}</td>
+      <td style="font-weight:700;font-size:11px">${d.sku||'-'}</td>
+      <td>
+        <span style="color:${CAT_COLOR[d.sort]||'#888'};font-weight:700">${d.sort||'-'}</span>
+        <span class="muted" style="font-size:11px"> / ${d.class_||'-'}</span>
+      </td>
+      <td style="max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${d.description||'-'}</td>
+      <td class="muted">${d.color||'-'}</td>
+      <td><span class="co-badge ${coBadge}">${d.co||'-'}</span></td>
+      <td style="font-weight:600">${d.sourcing||'-'}</td>
+      <td class="muted">${d.designer||'-'}</td>
+      <td class="muted" style="max-width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${d.vendor||'-'}</td>
+      <td>${cnEtdStr}</td>
+      <td>${cnRddStr}</td>
+      <td style="color:#34d399;font-weight:600">${d.cn_atd||'<span style="color:#94a3b8">-</span>'}</td>
+      <td>${krExpStr}</td>
+      <td style="color:#34d399;font-weight:600">${d.kr_actual||'<span style="color:#94a3b8">-</span>'}</td>
+      <td>${statusBadge(d)}</td>
+      <td class="muted" style="max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px">
+        ${d.remark||(d.delay_reason?`<span style="color:#f59e0b">${d.delay_reason}</span>`:'<span>-</span>')}
+      </td>
+    </tr>`;
+  });
+  document.getElementById('row-cnt').textContent=`총 ${rows.length}건 표시 (전체 ${AD.length}건)`;
+}
+
+renderDetail();
+</script>
+</body>
+</html>
