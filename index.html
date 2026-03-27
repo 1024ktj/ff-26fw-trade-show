@@ -1121,38 +1121,42 @@ const SECTION_CFG = {
 };
 
 function buildDist(field, cat){
-  const sets = {};
+  // 스타일당 가장 빠른 날짜에만 집계 (중복 방지)
+  const styleDate = {}; // style_code → earliest date
+  const naStyles = new Set();
   AD.forEach(d=>{
     if(cat !== 'all' && d.sort !== cat) return;
     if(!d.style_code) return;
-    if(d.is_na){
-      if(!sets['N/A']) sets['N/A'] = new Set();
-      sets['N/A'].add(d.style_code);
-      return;
-    }
+    if(d.is_na){ naStyles.add(d.style_code); return; }
     const dt = d[field] || 'TBD';
-    if(!sets[dt]) sets[dt] = new Set();
-    sets[dt].add(d.style_code);
+    const prev = styleDate[d.style_code];
+    if(!prev || (dt !== 'TBD' && (prev === 'TBD' || dt < prev)))
+      styleDate[d.style_code] = dt;
   });
   const dist = {};
-  Object.entries(sets).forEach(([dt, s])=>{ dist[dt] = s.size; });
+  Object.values(styleDate).forEach(dt=>{
+    dist[dt] = (dist[dt]||0) + 1;
+  });
+  if(naStyles.size > 0) dist['N/A'] = naStyles.size;
   return dist;
 }
 
-// 실적 분포: 실제 완료일 기준으로 style_code M 집계
+// 실적 분포: 스타일당 가장 빠른 실제 완료일에만 집계
 function buildActualDist(actualField, cat){
   if(!actualField) return null;
-  const sets = {};
+  const styleDate = {};
   AD.forEach(d=>{
     if(cat !== 'all' && d.sort !== cat) return;
     if(!d.style_code || d.is_na) return;
     const dt = d[actualField];
     if(!dt) return;
-    if(!sets[dt]) sets[dt] = new Set();
-    sets[dt].add(d.style_code);
+    const prev = styleDate[d.style_code];
+    if(!prev || dt < prev) styleDate[d.style_code] = dt;
   });
   const dist = {};
-  Object.entries(sets).forEach(([dt, s])=>{ dist[dt] = s.size; });
+  Object.values(styleDate).forEach(dt=>{
+    dist[dt] = (dist[dt]||0) + 1;
+  });
   return dist;
 }
 
