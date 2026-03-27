@@ -480,11 +480,17 @@ tbody td.muted { color:var(--muted); }
   <div class="grid-3" style="margin-bottom:24px;">
     <div class="card">
       <div class="sec-title">CN ETD 일정별 <span class="tag">중국 출발예정</span></div>
-      <div class="cat-tabs" id="etd-cat-tabs">
-        <button class="cat-tab active" onclick="switchCatTab('etd','all',this)">전체</button>
-        <button class="cat-tab" onclick="switchCatTab('etd','KNIT',this)">KNIT</button>
-        <button class="cat-tab" onclick="switchCatTab('etd','WOVEN',this)">WOVEN</button>
-        <button class="cat-tab" onclick="switchCatTab('etd','DENIM',this)">DENIM</button>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+        <div class="cat-tabs" id="etd-cat-tabs" style="margin-bottom:0">
+          <button class="cat-tab active" onclick="switchCatTab('etd','all',this)">전체</button>
+          <button class="cat-tab" onclick="switchCatTab('etd','KNIT',this)">KNIT</button>
+          <button class="cat-tab" onclick="switchCatTab('etd','WOVEN',this)">WOVEN</button>
+          <button class="cat-tab" onclick="switchCatTab('etd','DENIM',this)">DENIM</button>
+        </div>
+        <div style="display:flex;gap:10px;font-size:10px;color:var(--muted);margin-left:auto">
+          <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#60a5fa;vertical-align:middle;margin-right:2px"></span>ETD 예정</span>
+          <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#34d399;vertical-align:middle;margin-right:2px"></span>실제 발송완료</span>
+        </div>
       </div>
       <div id="cn-etd-list"></div>
       <div style="margin-top:12px; font-size:11px; color:var(--muted);">
@@ -510,11 +516,17 @@ tbody td.muted { color:var(--muted); }
     </div>
     <div class="card">
       <div class="sec-title">KR 입고예정일별 <span class="tag">한국 입고예정</span></div>
-      <div class="cat-tabs" id="kr-cat-tabs">
-        <button class="cat-tab active" onclick="switchCatTab('kr','all',this)">전체</button>
-        <button class="cat-tab" onclick="switchCatTab('kr','KNIT',this)">KNIT</button>
-        <button class="cat-tab" onclick="switchCatTab('kr','WOVEN',this)">WOVEN</button>
-        <button class="cat-tab" onclick="switchCatTab('kr','DENIM',this)">DENIM</button>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+        <div class="cat-tabs" id="kr-cat-tabs" style="margin-bottom:0">
+          <button class="cat-tab active" onclick="switchCatTab('kr','all',this)">전체</button>
+          <button class="cat-tab" onclick="switchCatTab('kr','KNIT',this)">KNIT</button>
+          <button class="cat-tab" onclick="switchCatTab('kr','WOVEN',this)">WOVEN</button>
+          <button class="cat-tab" onclick="switchCatTab('kr','DENIM',this)">DENIM</button>
+        </div>
+        <div style="display:flex;gap:10px;font-size:10px;color:var(--muted);margin-left:auto">
+          <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#60a5fa;vertical-align:middle;margin-right:2px"></span>입고 예정</span>
+          <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#34d399;vertical-align:middle;margin-right:2px"></span>실제 입고완료</span>
+        </div>
       </div>
       <div id="kr-exp-list"></div>
       <div class="due-summary" id="kr-summary"></div>
@@ -873,46 +885,87 @@ const CAT_COLOR = { KNIT:'#60a5fa', WOVEN:'#a78bfa', DENIM:'#fbbf24' };
 const catStat = {};
 AD.forEach(d=>{
   const s = d.sort||'기타';
-  if(!catStat[s]) catStat[s]={total:0,arrived:0,delayed:0,pcs:0};
+  if(!catStat[s]) catStat[s]={total:0,arrived:0,delayed:0,pcs:0,cn_sent:0,styles:new Set(),arrivedM:new Set(),cnSentM:new Set()};
   catStat[s].total++;
   catStat[s].pcs += d.ttl_pcs||0;
-  if(d.kr_actual) catStat[s].arrived++;
+  catStat[s].styles.add(d.style_code);
+  if(d.kr_actual){ catStat[s].arrived++; catStat[s].arrivedM.add(d.style_code); }
+  if(d.cn_atd)   { catStat[s].cn_sent++; catStat[s].cnSentM.add(d.style_code); }
   if(isDelayed(d)) catStat[s].delayed++;
 });
 
 const catEl = document.getElementById('cat-progress');
 ['KNIT','WOVEN','DENIM'].forEach(c=>{
-  const s = catStat[c]||{total:0,arrived:0,delayed:0,pcs:0};
-  const pct = s.total>0 ? Math.round(s.arrived/s.total*100):0;
+  const s = catStat[c]||{total:0,arrived:0,delayed:0,pcs:0,cn_sent:0,styles:new Set(),arrivedM:new Set(),cnSentM:new Set()};
+  const totalM = s.styles.size;
+  const krPct = s.total>0 ? Math.round(s.arrived/s.total*100):0;
+  const cnPct = s.total>0 ? Math.round(s.cn_sent/s.total*100):0;
   const col = CAT_COLOR[c];
+  const cnCol = '#f59e0b';
   catEl.innerHTML+=`
   <div class="cat-item">
     <div class="cat-header">
       <div class="cat-name">
         <span class="cat-dot" style="background:${col}"></span>${c}
       </div>
-      <div class="cat-nums"><strong>${s.arrived}</strong> / ${s.total} SKU &nbsp;·&nbsp; ${s.pcs} PCS</div>
+      <div class="cat-nums"><strong>${totalM}</strong>M &nbsp;·&nbsp; ${s.total} SKU &nbsp;·&nbsp; ${s.pcs} PCS</div>
     </div>
-    <div class="pbar"><div class="pbar-fill" style="width:${pct}%;background:${col}"></div></div>
-    <div class="cat-stats">
-      입고완료 <span style="color:${col}">${s.arrived}</span>
-      &nbsp;미입고 <span>${s.total-s.arrived}</span>
-      &nbsp;진행률 <span style="color:${col}">${pct}%</span>
-      ${s.delayed>0?`&nbsp;지연 <span style="color:#f87171">${s.delayed}</span>`:''}
+    <div style="display:flex;gap:16px;margin-top:4px">
+      <div style="flex:1">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:3px;font-weight:600">KR 입고</div>
+        <div class="pbar"><div class="pbar-fill" style="width:${krPct}%;background:${col}"></div></div>
+        <div class="cat-stats">
+          입고완료 <span style="color:${col}">${s.arrivedM.size}M / ${s.arrived}SKU</span>
+          &nbsp;미입고 <span>${totalM-s.arrivedM.size}M / ${s.total-s.arrived}SKU</span>
+          &nbsp;진행률 <span style="color:${col}">${krPct}%</span>
+          ${s.delayed>0?`&nbsp;지연 <span style="color:#f87171">${s.delayed}</span>`:''}
+        </div>
+      </div>
+      <div style="flex:1">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:3px;font-weight:600">CN 발송</div>
+        <div class="pbar"><div class="pbar-fill" style="width:${cnPct}%;background:${cnCol}"></div></div>
+        <div class="cat-stats">
+          발송완료 <span style="color:${cnCol}">${s.cnSentM.size}M / ${s.cn_sent}SKU</span>
+          &nbsp;미발송 <span>${totalM-s.cnSentM.size}M / ${s.total-s.cn_sent}SKU</span>
+          &nbsp;진행률 <span style="color:${cnCol}">${cnPct}%</span>
+        </div>
+      </div>
     </div>
   </div>`;
 });
 
-// ── 날짜 분포 리스트 ─────────────────────────────────────
-function renderDateList(elId, dist, color, pastColor){
+// ── 날짜 분포 리스트 (예정 vs 실적 비교) ──────────────────
+function renderDateList(elId, dist, color, pastColor, actualDist){
   const el = document.getElementById(elId);
   const tbdCnt  = dist['TBD'] || 0;
   const naCnt   = dist['N/A'] || 0;
   const dated   = Object.entries(dist).filter(([k])=>k!=='TBD'&&k!=='N/A').sort((a,b)=>a[0]<b[0]?-1:1);
-  // 누계% 분모: 날짜 있는 것만 (TBD, N/A 제외)
   const total   = dated.reduce((s,[,v])=>s+v, 0);
   const maxAll  = Math.max(...Object.values(dist), 1);
-  let cumCnt = 0;
+  const hasActual = actualDist !== null && actualDist !== undefined;
+  const actTotal  = hasActual ? Object.entries(actualDist).filter(([k])=>k!=='TBD'&&k!=='N/A').reduce((s,[,v])=>s+v, 0) : 0;
+  // 컬럼 헤더
+  const _hs = 'font-size:10px;color:#94a3b8;font-weight:600;white-space:nowrap;';
+  if(hasActual){
+    el.innerHTML+=`
+    <div class="date-row" style="border-bottom:1px solid #dde4f4;padding-bottom:6px;margin-bottom:4px">
+      <div class="dr-date" style="${_hs}">날짜</div>
+      <div style="flex:1;min-width:60px"></div>
+      <div style="${_hs}min-width:72px;text-align:right">예정M</div>
+      <div style="${_hs}min-width:72px;text-align:right">실적M</div>
+      <div style="${_hs}min-width:78px;text-align:right">달성률</div>
+    </div>`;
+  } else {
+    el.innerHTML+=`
+    <div class="date-row" style="border-bottom:1px solid #dde4f4;padding-bottom:6px;margin-bottom:4px">
+      <div class="dr-date" style="${_hs}">날짜</div>
+      <div style="flex:1;min-width:60px"></div>
+      <div class="dr-count" style="${_hs}">예정M</div>
+      <div class="dr-pct" style="${_hs}">비중</div>
+      <div class="dr-cum" style="${_hs}">누계%</div>
+    </div>`;
+  }
+  let cumCnt = 0, actCumCnt = 0;
   dated.forEach(([dt, cnt])=>{
     cumCnt += cnt;
     const past     = dt < TODAY;
@@ -922,15 +975,37 @@ function renderDateList(elId, dist, color, pastColor){
     const cumColor = parseFloat(cumPct) >= 100 ? '#34d399'
                    : parseFloat(cumPct) >= 80  ? '#60a5fa'
                    : '#fbbf24';
+    // 실적
+    const actCnt    = hasActual ? (actualDist[dt] || 0) : 0;
+    actCumCnt += actCnt;
+    const actBarPct = Math.round(actCnt / maxAll * 100);
+    const actCumPct = total > 0 ? (actCumCnt / total * 100).toFixed(1) : '0.0';
+    const hitRate   = cnt > 0 ? Math.round(actCnt / cnt * 100) : 0;
+    const gap       = (parseFloat(actCumPct) - parseFloat(cumPct)).toFixed(1);
+    const gapSign   = parseFloat(gap) >= 0 ? '+' : '';
+    const gapColor  = parseFloat(gap) >= 0 ? '#34d399' : '#f87171';
     el.innerHTML+=`
     <div class="date-row">
       <div class="dr-date ${past?'dr-past':''}">${dt}${past?' <small>(경과)</small>':''}</div>
-      <div class="dr-bar"><div class="dr-fill" style="width:${barPct}%;background:${past?pastColor:color};opacity:${past?0.4:1}"></div></div>
-      <div class="dr-count">${cnt}M</div>
+      <div style="flex:1;min-width:60px">
+        <div class="dr-bar"><div class="dr-fill" style="width:${barPct}%;background:${past?pastColor:color};opacity:${past?0.4:1}"></div></div>
+        ${hasActual?`<div class="dr-bar" style="margin-top:2px"><div class="dr-fill" style="width:${actBarPct}%;background:#34d399"></div></div>`:''}
+      </div>
+      ${hasActual?`<div style="font-size:11px;font-weight:600;min-width:72px;text-align:right;color:var(--text)">${cnt}M <span style="font-size:10px;font-weight:400;color:${past?'#94a3b8':cumColor}">(${cumPct}%)</span></div>
+      <div style="font-size:11px;font-weight:700;min-width:72px;text-align:right;color:${actCnt>=cnt?'#34d399':actCnt>0?'#f59e0b':'#cbd5e1'}">${actCnt}M <span style="font-size:10px;font-weight:400;color:#94a3b8">(${actCumPct}%)</span></div>
+      <div style="font-size:11px;font-weight:700;min-width:78px;text-align:right;color:${hitRate>=100?'#34d399':hitRate>0?'#f59e0b':'#cbd5e1'}">${hitRate}% <span style="font-size:10px;font-weight:600;color:${gapColor}">(${gapSign}${gap}%)</span></div>`
+      :`<div class="dr-count">${cnt}M</div>
       <div class="dr-pct">${sharePct}%</div>
-      <div class="dr-cum" style="color:${past?'#94a3b8':cumColor}">누계 ${cumPct}%</div>
+      <div class="dr-cum" style="color:${past?'#94a3b8':cumColor}">누계 ${cumPct}%</div>`}
     </div>`;
   });
+  // 전체 달성 요약 (실적 비교 모드일 때)
+  if(hasActual){
+    el.innerHTML+=`
+    <div style="margin-top:8px;font-size:11px;color:#94a3b8;text-align:right;font-weight:600">
+      전체 달성 <span style="color:${actTotal>=total?'#34d399':'#f59e0b'}">${actTotal}</span>/${total}M (<span style="color:${actTotal>=total?'#34d399':'#f59e0b'}">${total>0?(actTotal/total*100).toFixed(1):'0.0'}%</span>)
+    </div>`;
+  }
   // TBD 항목
   if(tbdCnt > 0){
     const tbdBar = Math.round(tbdCnt / maxAll * 100);
@@ -943,7 +1018,7 @@ function renderDateList(elId, dist, color, pastColor){
       <div class="dr-cum" style="color:#94a3b8">-</div>
     </div>`;
   }
-  // N/A(미제작) 항목 — 별도 표시
+  // N/A(미제작) 항목
   if(naCnt > 0){
     const naBar = Math.round(naCnt / maxAll * 100);
     el.innerHTML+=`
@@ -957,17 +1032,25 @@ function renderDateList(elId, dist, color, pastColor){
   }
 }
 
-// ── DUE DATE 누계 요약 박스 ──────────────────────────────
-function renderDueSummary(summaryId, dist, dues){
+// ── DUE DATE 누계 요약 박스 (예정 vs 실적) ────────────────
+function renderDueSummary(summaryId, dist, dues, actualDist){
   const el = document.getElementById(summaryId);
   if(!el) return;
   const tbdCnt = dist['TBD'] || 0;
   const naCnt  = dist['N/A'] || 0;
-  // 분모: TBD·N/A 제외 (날짜 있는 것만)
   const sorted = Object.entries(dist).filter(([k])=>k!=='TBD'&&k!=='N/A').sort((a,b)=>a[0]<b[0]?-1:1);
   const total  = sorted.reduce((s,[,v])=>s+v, 0);
+  const hasActual = actualDist != null;
+  const actSorted = hasActual ? Object.entries(actualDist).filter(([k])=>k!=='TBD'&&k!=='N/A').sort((a,b)=>a[0]<b[0]?-1:1) : [];
 
-  let html = '<div class="due-summary-title">DUE DATE 기준 누계 <span style="font-size:10px;color:#94a3b8">(TBD·N/A 제외)</span></div>';
+  let html = `<div class="due-summary-title">DUE DATE 기준 누계 <span style="font-size:10px;color:#94a3b8">(TBD·N/A 제외)</span></div>`;
+  if(hasActual){
+    html += `<div style="display:flex;align-items:center;margin-bottom:6px;font-size:10px;font-weight:700;color:#94a3b8;border-bottom:1px solid #eaedf8;padding-bottom:4px">
+      <div style="flex:1">기준</div>
+      <div style="width:72px;text-align:right">예정 누계</div>
+      <div style="width:72px;text-align:right">실적 달성</div>
+    </div>`;
+  }
   dues.forEach(({label, date})=>{
     let cumCnt = 0;
     sorted.forEach(([dt, cnt])=>{ if(dt <= date) cumCnt += cnt; });
@@ -975,13 +1058,20 @@ function renderDueSummary(summaryId, dist, dues){
     const valColor = parseFloat(cumPct) >= 100 ? '#34d399'
                    : parseFloat(cumPct) >= 80  ? '#60a5fa'
                    : '#f87171';
+    // 실적 누계
+    let actCum = 0;
+    if(hasActual) actSorted.forEach(([dt, cnt])=>{ if(dt <= date) actCum += cnt; });
+    const actPct = total > 0 ? (actCum / total * 100).toFixed(1) : '0.0';
+    const actColor = parseFloat(actPct) >= parseFloat(cumPct) ? '#34d399'
+                   : parseFloat(actPct) >= parseFloat(cumPct)*0.5 ? '#f59e0b'
+                   : '#f87171';
     html += `
-    <div class="due-row">
-      <div class="due-label">${label} <span style="color:var(--muted);font-weight:400;font-size:11px">(~${date})</span></div>
-      <div class="due-val" style="color:${valColor}">${cumPct}%</div>
+    <div class="due-row" style="display:flex;align-items:center">
+      <div class="due-label" style="flex:1">${label} <span style="color:var(--muted);font-weight:400;font-size:11px">(~${date})</span></div>
+      <div class="due-val" style="color:${valColor};width:72px;text-align:right">${cumPct}%</div>
+      ${hasActual?`<div class="due-val" style="color:${actColor};width:72px;text-align:right">${actPct}%</div>`:''}
     </div>`;
   });
-  // TBD 별도 표시
   if(tbdCnt > 0){
     html += `
     <div class="due-row" style="border-top:1px dashed #d1d5e8;margin-top:4px;padding-top:6px">
@@ -989,7 +1079,6 @@ function renderDueSummary(summaryId, dist, dues){
       <div class="due-val" style="color:#94a3b8">${tbdCnt}M / 제외</div>
     </div>`;
   }
-  // N/A 별도 표시
   if(naCnt > 0){
     html += `
     <div class="due-row" style="opacity:0.65">
@@ -1004,6 +1093,7 @@ function renderDueSummary(summaryId, dist, dues){
 const SECTION_CFG = {
   etd: {
     listId:'cn-etd-list', summaryId:'etd-summary', field:'cn_etd',
+    actualField:'cn_atd',
     color:'#60a5fa', pastColor:'#94a3b8',
     dues:[
       { label:'입고 DUE',   date:'2026-04-02' },
@@ -1012,6 +1102,7 @@ const SECTION_CFG = {
   },
   rdd: {
     listId:'cn-rdd-list', summaryId:'rdd-summary', field:'cn_rdd',
+    actualField:null,
     color:'#7c5fc0', pastColor:'#94a3b8',
     dues:[
       { label:'CN 입고 DUE',    date:'2026-04-02' },
@@ -1020,7 +1111,8 @@ const SECTION_CFG = {
   },
   kr: {
     listId:'kr-exp-list', summaryId:'kr-summary', field:'kr_expected',
-    color:'#34d399', pastColor:'#94a3b8',
+    actualField:'kr_actual',
+    color:'#60a5fa', pastColor:'#94a3b8',
     dues:[
       { label:'KR 입고 DUE', date:'2026-04-02' },
       { label:'CEO 품평회',  date:'2026-04-06' }
@@ -1029,8 +1121,6 @@ const SECTION_CFG = {
 };
 
 function buildDist(field, cat){
-  // style_code 기준 중복 제거 집계 (Set per date)
-  // N/A 아이템 → 'N/A' bucket, 날짜 없는 건 → 'TBD'
   const sets = {};
   AD.forEach(d=>{
     if(cat !== 'all' && d.sort !== cat) return;
@@ -1044,7 +1134,23 @@ function buildDist(field, cat){
     if(!sets[dt]) sets[dt] = new Set();
     sets[dt].add(d.style_code);
   });
-  // Set → count 변환
+  const dist = {};
+  Object.entries(sets).forEach(([dt, s])=>{ dist[dt] = s.size; });
+  return dist;
+}
+
+// 실적 분포: 실제 완료일 기준으로 style_code M 집계
+function buildActualDist(actualField, cat){
+  if(!actualField) return null;
+  const sets = {};
+  AD.forEach(d=>{
+    if(cat !== 'all' && d.sort !== cat) return;
+    if(!d.style_code || d.is_na) return;
+    const dt = d[actualField];
+    if(!dt) return;
+    if(!sets[dt]) sets[dt] = new Set();
+    sets[dt].add(d.style_code);
+  });
   const dist = {};
   Object.entries(sets).forEach(([dt, s])=>{ dist[dt] = s.size; });
   return dist;
@@ -1053,9 +1159,10 @@ function buildDist(field, cat){
 function renderSection(section, cat){
   const cfg = SECTION_CFG[section];
   const dist = buildDist(cfg.field, cat);
+  const actDist = buildActualDist(cfg.actualField, cat);
   document.getElementById(cfg.listId).innerHTML = '';
-  renderDateList(cfg.listId, dist, cfg.color, cfg.pastColor);
-  renderDueSummary(cfg.summaryId, dist, cfg.dues);
+  renderDateList(cfg.listId, dist, cfg.color, cfg.pastColor, actDist);
+  renderDueSummary(cfg.summaryId, dist, cfg.dues, actDist);
   // ETD 섹션은 CO 카운트도 갱신 (고유 style_code 기준)
   if(section === 'etd'){
     const coSets = {CN:new Set(), VN:new Set(), KR:new Set()};
