@@ -453,7 +453,7 @@ tbody td.muted { color:var(--muted); }
     <div class="kpi-card" style="--kpi-color:#60a5fa">
       <div class="stripe"></div>
       <div class="kpi-label">KR 입고 완료</div>
-      <div class="kpi-val" id="k-arrived"></div>
+      <div class="kpi-val" id="k-arrived" style="font-size:26px"></div>
       <div class="kpi-sub" id="k-arrived-sub"></div>
     </div>
     <div class="kpi-card" style="--kpi-color:#f87171">
@@ -526,15 +526,21 @@ tbody td.muted { color:var(--muted); }
       <div class="due-summary" id="etd-summary"></div>
     </div>
     <div class="card">
-      <div class="sec-title">CN RDD 예상 <span class="tag">CN도착예정 (ETD+Transit)</span></div>
+      <div class="sec-title">CN RDD 예상 <span class="tag">예정 vs 실발송 기준</span></div>
       <div style="font-size:11px; color:var(--muted); margin-bottom:10px;">
         CN출고→CN입고 : CN +2일 / VN·KR +5일 transit
       </div>
-      <div class="cat-tabs" id="rdd-cat-tabs">
-        <button class="cat-tab active" onclick="switchCatTab('rdd','all',this)">전체</button>
-        <button class="cat-tab" onclick="switchCatTab('rdd','KNIT',this)">KNIT</button>
-        <button class="cat-tab" onclick="switchCatTab('rdd','WOVEN',this)">WOVEN</button>
-        <button class="cat-tab" onclick="switchCatTab('rdd','DENIM',this)">DENIM</button>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+        <div class="cat-tabs" id="rdd-cat-tabs" style="margin-bottom:0">
+          <button class="cat-tab active" onclick="switchCatTab('rdd','all',this)">전체</button>
+          <button class="cat-tab" onclick="switchCatTab('rdd','KNIT',this)">KNIT</button>
+          <button class="cat-tab" onclick="switchCatTab('rdd','WOVEN',this)">WOVEN</button>
+          <button class="cat-tab" onclick="switchCatTab('rdd','DENIM',this)">DENIM</button>
+        </div>
+        <div style="display:flex;gap:10px;font-size:10px;color:var(--muted);margin-left:auto">
+          <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#7c5fc0;vertical-align:middle;margin-right:2px"></span>ETD 기준 예정</span>
+          <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#34d399;vertical-align:middle;margin-right:2px"></span>실발송 기준 실적 RDD 예상</span>
+        </div>
       </div>
       <div id="cn-rdd-list"></div>
       <div class="due-summary" id="rdd-summary"></div>
@@ -669,6 +675,17 @@ tbody td.muted { color:var(--muted); }
 const D  = DASHBOARD;
 const AD = D.all_data;
 const _now = new Date();
+
+// CN ATD 기준 실적 RDD 계산 (cn_atd + transit_days)
+AD.forEach(d=>{
+  if(d.cn_atd && d.transit_days){
+    const atd = new Date(d.cn_atd);
+    atd.setDate(atd.getDate() + d.transit_days);
+    d.cn_rdd_actual = atd.getFullYear()+'-'+String(atd.getMonth()+1).padStart(2,'0')+'-'+String(atd.getDate()).padStart(2,'0');
+  } else {
+    d.cn_rdd_actual = null;
+  }
+});
 const TODAY = _now.getFullYear()+'-'+String(_now.getMonth()+1).padStart(2,'0')+'-'+String(_now.getDate()).padStart(2,'0');
 
 // ── 유틸 ────────────────────────────────────────────────
@@ -701,6 +718,8 @@ document.getElementById('d-badge').textContent = 'D-'+dLeft+' to CN TRADE SHOW';
 
 // ── KPI ─────────────────────────────────────────────────
 const totalArrived = AD.filter(d=>d.kr_actual).length;
+const arrivedStyleSet = new Set(AD.filter(d=>d.kr_actual).map(d=>d.style_code));
+const totalArrivedM = arrivedStyleSet.size;
 const totalDelayed = AD.filter(d=>isDelayed(d)).length;
 const naSku        = AD.filter(d=>d.is_na).length;
 const naStyleCnt   = (D.na_styles || 0);
@@ -718,9 +737,9 @@ document.getElementById('k-sku-sub').textContent= D.total_sku+'개 GO 아이템'
 document.getElementById('k-style').textContent  = D.total_styles;
 document.getElementById('k-style-sub').textContent = 'KNIT + WOVEN + DENIM';
 document.getElementById('k-pcs').textContent    = D.total_pcs.toLocaleString();
-document.getElementById('k-arrived').textContent= totalArrived;
+document.getElementById('k-arrived').textContent= totalArrivedM+'M / '+totalArrived+' SKU';
 document.getElementById('k-arrived-sub').textContent =
-  Math.round(totalArrived/D.total_sku*100)+'% 완료';
+  Math.round(totalArrivedM/D.total_styles*100)+'% 완료 (M 기준)';
 document.getElementById('k-delayed-wrap').innerHTML =
   `<div style="font-size:13px;line-height:2">` +
   `<span style="color:#64748b;font-weight:700;min-width:22px;display:inline-block">KR</span>` +
@@ -950,7 +969,7 @@ const catEl = document.getElementById('cat-progress');
 });
 
 // ── 날짜 분포 리스트 (예정 vs 실적 비교) ──────────────────
-function renderDateList(elId, dist, color, pastColor, actualDist){
+function renderDateList(elId, dist, color, pastColor, actualDist, actualLabels){
   const el = document.getElementById(elId);
   const tbdCnt  = dist['TBD'] || 0;
   const naCnt   = dist['N/A'] || 0;
@@ -965,14 +984,16 @@ function renderDateList(elId, dist, color, pastColor, actualDist){
   const actTotal  = hasActual ? Object.entries(actualDist).filter(([k])=>k!=='TBD'&&k!=='N/A').reduce((s,[,v])=>s+v, 0) : 0;
   // 컬럼 헤더
   const _hs = 'font-size:10px;color:#94a3b8;font-weight:600;white-space:nowrap;';
+  const _actColLabel = (actualLabels&&actualLabels.col) || '실적M';
+  const _actLastLabel = (actualLabels&&actualLabels.lastCol) || '달성률';
   if(hasActual){
     el.innerHTML+=`
     <div class="date-row" style="border-bottom:1px solid #dde4f4;padding-bottom:6px;margin-bottom:4px">
       <div class="dr-date" style="${_hs}">날짜</div>
       <div style="flex:1;min-width:60px"></div>
       <div style="${_hs}min-width:72px;text-align:right">예정M</div>
-      <div style="${_hs}min-width:72px;text-align:right">실적M</div>
-      <div style="${_hs}min-width:78px;text-align:right">달성률</div>
+      <div style="${_hs}min-width:72px;text-align:right">${_actColLabel}</div>
+      <div style="${_hs}min-width:78px;text-align:right">${_actLastLabel}</div>
     </div>`;
   } else {
     el.innerHTML+=`
@@ -1052,7 +1073,7 @@ function renderDateList(elId, dist, color, pastColor, actualDist){
 }
 
 // ── DUE DATE 누계 요약 박스 (예정 vs 실적) ────────────────
-function renderDueSummary(summaryId, dist, dues, actualDist){
+function renderDueSummary(summaryId, dist, dues, actualDist, actualLabels){
   const el = document.getElementById(summaryId);
   if(!el) return;
   const tbdCnt = dist['TBD'] || 0;
@@ -1061,13 +1082,14 @@ function renderDueSummary(summaryId, dist, dues, actualDist){
   const total  = sorted.reduce((s,[,v])=>s+v, 0);
   const hasActual = actualDist != null;
   const actSorted = hasActual ? Object.entries(actualDist).filter(([k])=>k!=='TBD'&&k!=='N/A').sort((a,b)=>a[0]<b[0]?-1:1) : [];
+  const _sumLabel = (actualLabels&&actualLabels.summary) || '실적 달성';
 
   let html = `<div class="due-summary-title">DUE DATE 기준 누계 <span style="font-size:10px;color:#94a3b8">(TBD·N/A 제외)</span></div>`;
   if(hasActual){
     html += `<div style="display:flex;align-items:center;margin-bottom:6px;font-size:10px;font-weight:700;color:#94a3b8;border-bottom:1px solid #eaedf8;padding-bottom:4px">
       <div style="flex:1">기준</div>
       <div style="width:72px;text-align:right">예정 누계</div>
-      <div style="width:72px;text-align:right">실적 달성</div>
+      <div style="width:72px;text-align:right">${_sumLabel}</div>
     </div>`;
   }
   dues.forEach(({label, date})=>{
@@ -1121,8 +1143,9 @@ const SECTION_CFG = {
   },
   rdd: {
     listId:'cn-rdd-list', summaryId:'rdd-summary', field:'cn_rdd',
-    actualField:null,
+    actualField:'cn_rdd_actual',
     color:'#7c5fc0', pastColor:'#94a3b8',
+    actualLabels:{ col:'실적RDD예상M', lastCol:'비고', summary:'실적 RDD 예상' },
     dues:[
       { label:'CN 입고 DUE',    date:'2026-04-02' },
       { label:'CN TRADE SHOW', date:'2026-04-08' }
@@ -1184,8 +1207,8 @@ function renderSection(section, cat){
   const dist = buildDist(cfg.field, cat);
   const actDist = buildActualDist(cfg.actualField, cat);
   document.getElementById(cfg.listId).innerHTML = '';
-  renderDateList(cfg.listId, dist, cfg.color, cfg.pastColor, actDist);
-  renderDueSummary(cfg.summaryId, dist, cfg.dues, actDist);
+  renderDateList(cfg.listId, dist, cfg.color, cfg.pastColor, actDist, cfg.actualLabels);
+  renderDueSummary(cfg.summaryId, dist, cfg.dues, actDist, cfg.actualLabels);
   // ETD 섹션은 CO 카운트도 갱신 (고유 style_code 기준)
   if(section === 'etd'){
     const coSets = {CN:new Set(), VN:new Set(), KR:new Set()};
