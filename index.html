@@ -431,24 +431,18 @@ tbody td.muted { color:var(--muted); }
 <div class="container">
 
   <!-- KPI -->
-  <div class="grid-5">
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px;">
     <div class="kpi-card" style="--kpi-color:#7c5fc0">
       <div class="stripe"></div>
-      <div class="kpi-label">총 스타일(M)</div>
-      <div class="kpi-val" id="k-style"></div>
-      <div class="kpi-sub" id="k-style-sub">KNIT + WOVEN + DENIM</div>
+      <div class="kpi-label">총 스타일 / SKU / PCS</div>
+      <div class="kpi-val" id="k-summary" style="font-size:28px"></div>
+      <div id="k-summary-detail" style="margin-top:6px;font-size:12px;color:var(--muted);line-height:1.8"></div>
     </div>
-    <div class="kpi-card" style="--kpi-color:#5b7fd4">
+    <div class="kpi-card" style="--kpi-color:#f59e0b">
       <div class="stripe"></div>
-      <div class="kpi-label">전체 SKU</div>
-      <div class="kpi-val" id="k-sku"></div>
-      <div class="kpi-sub" id="k-sku-sub"></div>
-    </div>
-    <div class="kpi-card" style="--kpi-color:#34d399">
-      <div class="stripe"></div>
-      <div class="kpi-label">총 생산 PCS</div>
-      <div class="kpi-val" id="k-pcs"></div>
-      <div class="kpi-sub">TTL 품평 샘플 기준</div>
+      <div class="kpi-label">CN 발송 완료</div>
+      <div class="kpi-val" id="k-cn-sent" style="font-size:26px"></div>
+      <div class="kpi-sub" id="k-cn-sent-sub"></div>
     </div>
     <div class="kpi-card" style="--kpi-color:#60a5fa">
       <div class="stripe"></div>
@@ -538,8 +532,8 @@ tbody td.muted { color:var(--muted); }
           <button class="cat-tab" onclick="switchCatTab('rdd','DENIM',this)">DENIM</button>
         </div>
         <div style="display:flex;gap:10px;font-size:10px;color:var(--muted);margin-left:auto">
-          <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#7c5fc0;vertical-align:middle;margin-right:2px"></span>ETD 기준 예정</span>
-          <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#34d399;vertical-align:middle;margin-right:2px"></span>실발송 기준 실적 RDD 예상</span>
+          <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#a5b4fc;vertical-align:middle;margin-right:2px"></span>ETD 기준 예정</span>
+          <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#86efac;vertical-align:middle;margin-right:2px"></span>실발송 기준 실적 RDD 예상</span>
         </div>
       </div>
       <div id="cn-rdd-list"></div>
@@ -732,11 +726,21 @@ const krDelayCnt = AD.filter(d=>!d.is_na&&!d.kr_actual&&d.kr_expected&&d.kr_expe
 const cnWarnCnt  = AD.filter(d=>!d.is_na&&!d.kr_actual&&d.cn_rdd&&d.cn_rdd>=CN_WARN_S&&d.cn_rdd<=CN_WARN_E).length;
 const cnDelayCnt = AD.filter(d=>!d.is_na&&!d.kr_actual&&d.cn_rdd&&d.cn_rdd>=CN_DELAY_S).length;
 
-document.getElementById('k-sku').textContent    = D.total_sku;
-document.getElementById('k-sku-sub').textContent= D.total_sku+'개 GO 아이템';
-document.getElementById('k-style').textContent  = D.total_styles;
-document.getElementById('k-style-sub').textContent = 'KNIT + WOVEN + DENIM';
-document.getElementById('k-pcs').textContent    = D.total_pcs.toLocaleString();
+// 카드1: 총 스타일/SKU/PCS
+document.getElementById('k-summary').textContent = D.total_styles+'M';
+document.getElementById('k-summary-detail').innerHTML =
+  `<span style="color:var(--text);font-weight:700">${D.total_sku}</span> SKU &nbsp;·&nbsp; <span style="color:var(--text);font-weight:700">${D.total_pcs.toLocaleString()}</span> PCS`+
+  `<br><span style="font-size:11px">KNIT + WOVEN + DENIM</span>`;
+
+// 카드2: CN 발송 완료
+const cnSentSku = AD.filter(d=>d.cn_atd).length;
+const cnSentStyleSet = new Set(AD.filter(d=>d.cn_atd).map(d=>d.style_code));
+const cnSentM = cnSentStyleSet.size;
+document.getElementById('k-cn-sent').textContent = cnSentM+'M / '+cnSentSku+' SKU';
+document.getElementById('k-cn-sent-sub').textContent =
+  Math.round(cnSentM/D.total_styles*100)+'% 완료 (M 기준)';
+
+// 카드3: KR 입고 완료
 document.getElementById('k-arrived').textContent= totalArrivedM+'M / '+totalArrived+' SKU';
 document.getElementById('k-arrived-sub').textContent =
   Math.round(totalArrivedM/D.total_styles*100)+'% 완료 (M 기준)';
@@ -984,14 +988,14 @@ function renderDateList(elId, dist, color, pastColor, actualDist, actualLabels){
   const actTotal  = hasActual ? Object.entries(actualDist).filter(([k])=>k!=='TBD'&&k!=='N/A').reduce((s,[,v])=>s+v, 0) : 0;
   // 컬럼 헤더
   const _hs = 'font-size:10px;color:#94a3b8;font-weight:600;white-space:nowrap;';
-  const _actColLabel = (actualLabels&&actualLabels.col) || '실적M';
+  const _actColLabel = (actualLabels&&actualLabels.col) || '실적 누계';
   const _actLastLabel = (actualLabels&&actualLabels.lastCol) || '달성률';
   if(hasActual){
     el.innerHTML+=`
     <div class="date-row" style="border-bottom:1px solid #dde4f4;padding-bottom:6px;margin-bottom:4px">
       <div class="dr-date" style="${_hs}">날짜</div>
-      <div style="flex:1;min-width:60px"></div>
-      <div style="${_hs}min-width:72px;text-align:right">예정M</div>
+      <div style="flex:1;min-width:60px;${_hs}">누계 바 (예정 / 실적)</div>
+      <div style="${_hs}min-width:72px;text-align:right">예정(누계%)</div>
       <div style="${_hs}min-width:72px;text-align:right">${_actColLabel}</div>
       <div style="${_hs}min-width:78px;text-align:right">${_actLastLabel}</div>
     </div>`;
@@ -1012,27 +1016,31 @@ function renderDateList(elId, dist, color, pastColor, actualDist, actualLabels){
     const barPct   = Math.round(cnt / maxAll * 100);
     const sharePct = total > 0 ? (cnt / total * 100).toFixed(1) : '0.0';
     const cumPct   = total > 0 ? (cumCnt / total * 100).toFixed(1) : '0.0';
+    const cumBarPct = total > 0 ? Math.round(cumCnt / total * 100) : 0;
     const cumColor = parseFloat(cumPct) >= 100 ? '#34d399'
                    : parseFloat(cumPct) >= 80  ? '#60a5fa'
                    : '#fbbf24';
     // 실적
     const actCnt    = hasActual ? (actualDist[dt] || 0) : 0;
     actCumCnt += actCnt;
-    const actBarPct = Math.round(actCnt / maxAll * 100);
+    const actCumBarPct = total > 0 ? Math.round(actCumCnt / total * 100) : 0;
     const actCumPct = total > 0 ? (actCumCnt / total * 100).toFixed(1) : '0.0';
-    const hitRate   = cnt > 0 ? Math.round(actCnt / cnt * 100) : 0;
+    const hitRate   = cumCnt > 0 ? Math.round(actCumCnt / cumCnt * 100) : 0;
     const gap       = (parseFloat(actCumPct) - parseFloat(cumPct)).toFixed(1);
     const gapSign   = parseFloat(gap) >= 0 ? '+' : '';
     const gapColor  = parseFloat(gap) >= 0 ? '#34d399' : '#f87171';
     el.innerHTML+=`
     <div class="date-row">
       <div class="dr-date ${past?'dr-past':''}">${dt}${past?' <small>(경과)</small>':''}</div>
-      <div style="flex:1;min-width:60px">
+      ${hasActual?`<div style="flex:1;min-width:60px;display:flex;flex-direction:column;gap:2px;justify-content:center">
+        <div style="height:6px;background:#edf0fc;border-radius:3px;overflow:hidden"><div style="height:100%;width:${cumBarPct}%;background:#a5b4fc;border-radius:3px;transition:width 0.3s"></div></div>
+        <div style="height:6px;background:#edf0fc;border-radius:3px;overflow:hidden"><div style="height:100%;width:${actCumBarPct}%;background:#86efac;border-radius:3px;transition:width 0.3s"></div></div>
+      </div>`
+      :`<div style="flex:1;min-width:60px">
         <div class="dr-bar"><div class="dr-fill" style="width:${barPct}%;background:${past?pastColor:color};opacity:${past?0.4:1}"></div></div>
-        ${hasActual?`<div class="dr-bar" style="margin-top:2px"><div class="dr-fill" style="width:${actBarPct}%;background:#34d399"></div></div>`:''}
-      </div>
+      </div>`}
       ${hasActual?`<div style="font-size:11px;font-weight:600;min-width:72px;text-align:right;color:var(--text)">${cnt}M <span style="font-size:10px;font-weight:400;color:${past?'#94a3b8':cumColor}">(${cumPct}%)</span></div>
-      <div style="font-size:11px;font-weight:700;min-width:72px;text-align:right;color:${actCnt>=cnt?'#34d399':actCnt>0?'#f59e0b':'#cbd5e1'}">${actCnt}M <span style="font-size:10px;font-weight:400;color:#94a3b8">(${actCumPct}%)</span></div>
+      <div style="font-size:11px;font-weight:700;min-width:72px;text-align:right;color:${actCumCnt>=cumCnt?'#34d399':actCumCnt>0?'#f59e0b':'#cbd5e1'}">${actCumCnt}M <span style="font-size:10px;font-weight:400;color:#94a3b8">(${actCumPct}%)</span></div>
       <div style="font-size:11px;font-weight:700;min-width:78px;text-align:right;color:${hitRate>=100?'#34d399':hitRate>0?'#f59e0b':'#cbd5e1'}">${hitRate}% <span style="font-size:10px;font-weight:600;color:${gapColor}">(${gapSign}${gap}%)</span></div>`
       :`<div class="dr-count">${cnt}M</div>
       <div class="dr-pct">${sharePct}%</div>
