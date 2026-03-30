@@ -954,10 +954,14 @@ function renderDateList(elId, dist, color, pastColor, actualDist){
   const el = document.getElementById(elId);
   const tbdCnt  = dist['TBD'] || 0;
   const naCnt   = dist['N/A'] || 0;
-  const dated   = Object.entries(dist).filter(([k])=>k!=='TBD'&&k!=='N/A').sort((a,b)=>a[0]<b[0]?-1:1);
-  const total   = dated.reduce((s,[,v])=>s+v, 0);
-  const maxAll  = Math.max(...Object.values(dist), 1);
   const hasActual = actualDist !== null && actualDist !== undefined;
+  // 예정 날짜와 실적 날짜를 모두 합쳐서 정렬
+  const allDatesSet = new Set();
+  Object.keys(dist).forEach(k=>{ if(k!=='TBD'&&k!=='N/A') allDatesSet.add(k); });
+  if(hasActual) Object.keys(actualDist).forEach(k=>{ if(k!=='TBD'&&k!=='N/A') allDatesSet.add(k); });
+  const dated = Array.from(allDatesSet).sort().map(dt=>[dt, dist[dt]||0]);
+  const total   = dated.reduce((s,[,v])=>s+v, 0);
+  const maxAll  = Math.max(...dated.map(([,v])=>v), ...(hasActual?Object.entries(actualDist).filter(([k])=>k!=='TBD'&&k!=='N/A').map(([,v])=>v):[]), 1);
   const actTotal  = hasActual ? Object.entries(actualDist).filter(([k])=>k!=='TBD'&&k!=='N/A').reduce((s,[,v])=>s+v, 0) : 0;
   // 컬럼 헤더
   const _hs = 'font-size:10px;color:#94a3b8;font-weight:600;white-space:nowrap;';
