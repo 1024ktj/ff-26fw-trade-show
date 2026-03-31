@@ -760,10 +760,13 @@ document.getElementById('k-delayed-wrap').innerHTML =
   `<span style="color:#f87171;font-weight:800">${cnDelayCnt}건</span>` +
   `<span style="color:#94a3b8;font-size:10px"> 지연</span></div>`;
 
-// 필터 버튼 건수 표시
-document.getElementById('btn-kr-delayed').textContent = `KR 지연 (${krDelayCnt}건)`;
-document.getElementById('btn-cn-delayed').textContent = `CN 지연 (${cnDelayCnt}건)`;
-document.getElementById('btn-na').textContent = `미제작 (${naSku}건)`;
+// 필터 버튼 건수 표시 (M수 = 스타일 중복 제거)
+const krDelayM = new Set(AD.filter(d=>!d.is_na&&!d.kr_actual&&d.kr_expected&&d.kr_expected>=KR_DELAY_S).map(d=>d.style_code)).size;
+const cnDelayM = new Set(AD.filter(d=>!d.is_na&&!d.kr_actual&&d.cn_rdd&&d.cn_rdd>=CN_DELAY_S).map(d=>d.style_code)).size;
+const naM = new Set(AD.filter(d=>d.is_na).map(d=>d.style_code)).size;
+document.getElementById('btn-kr-delayed').textContent = `KR 지연 (${krDelayM}M / ${krDelayCnt}건)`;
+document.getElementById('btn-cn-delayed').textContent = `CN 지연 (${cnDelayM}M / ${cnDelayCnt}건)`;
+document.getElementById('btn-na').textContent = `미제작 (${naM}M / ${naSku}건)`;
 
 // ── AI 인사이트 ──────────────────────────────────────────
 (function renderInsights(){
@@ -1039,7 +1042,7 @@ function renderDateList(elId, dist, color, pastColor, actualDist, actualLabels){
       :`<div style="flex:1;min-width:60px">
         <div class="dr-bar"><div class="dr-fill" style="width:${barPct}%;background:${past?pastColor:color};opacity:${past?0.4:1}"></div></div>
       </div>`}
-      ${hasActual?`<div style="font-size:11px;font-weight:600;min-width:72px;text-align:right;color:var(--text)">${cnt}M <span style="font-size:10px;font-weight:400;color:${past?'#94a3b8':cumColor}">(${cumPct}%)</span></div>
+      ${hasActual?`<div style="font-size:11px;font-weight:600;min-width:72px;text-align:right;color:var(--text)">${cumCnt}M <span style="font-size:10px;font-weight:400;color:${past?'#94a3b8':cumColor}">(${cumPct}%)</span></div>
       <div style="font-size:11px;font-weight:700;min-width:72px;text-align:right;color:${actCumCnt>=cumCnt?'#34d399':actCumCnt>0?'#f59e0b':'#cbd5e1'}">${actCumCnt}M <span style="font-size:10px;font-weight:400;color:#94a3b8">(${actCumPct}%)</span></div>
       <div style="font-size:11px;font-weight:700;min-width:78px;text-align:right;color:${hitRate>=100?'#34d399':hitRate>0?'#f59e0b':'#cbd5e1'}">${hitRate}% <span style="font-size:10px;font-weight:600;color:${gapColor}">(${gapSign}${gap}%)</span></div>`
       :`<div class="dr-count">${cnt}M</div>
