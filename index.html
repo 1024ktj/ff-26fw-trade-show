@@ -535,13 +535,13 @@ tbody td.muted { color:var(--muted); }
     <div class="kpi-card" style="--kpi-color:#f59e0b">
       <div class="stripe"></div>
       <div class="kpi-label">CN 발송 완료</div>
-      <div class="kpi-val" id="k-cn-sent" style="font-size:26px"></div>
+      <div class="kpi-val" id="k-cn-sent" style="font-size:20px"></div>
       <div class="kpi-sub" id="k-cn-sent-sub"></div>
     </div>
     <div class="kpi-card" style="--kpi-color:#60a5fa">
       <div class="stripe"></div>
       <div class="kpi-label">KR 입고 완료</div>
-      <div class="kpi-val" id="k-arrived" style="font-size:26px"></div>
+      <div class="kpi-val" id="k-arrived" style="font-size:20px"></div>
       <div class="kpi-sub" id="k-arrived-sub"></div>
     </div>
     <div class="kpi-card" style="--kpi-color:#f87171">
@@ -841,12 +841,14 @@ document.getElementById('k-summary-detail').innerHTML =
 const cnSentSku = AD.filter(d=>d.cn_atd).length;
 const cnSentStyleSet = new Set(AD.filter(d=>d.cn_atd).map(d=>d.style_code));
 const cnSentM = cnSentStyleSet.size;
-document.getElementById('k-cn-sent').textContent = cnSentM+'M / '+cnSentSku+' SKU';
+const cnSentPcs = AD.filter(d=>d.cn_atd).reduce((s,d)=>s+d.cn_pcs,0);
+document.getElementById('k-cn-sent').innerHTML = cnSentM+'M / '+cnSentSku+' SKU / '+cnSentPcs.toLocaleString()+' PCS';
 document.getElementById('k-cn-sent-sub').textContent =
   Math.round(cnSentM/D.total_styles*100)+'% 완료 (M 기준)';
 
 // 카드3: KR 입고 완료
-document.getElementById('k-arrived').textContent= totalArrivedM+'M / '+totalArrived+' SKU';
+const krArrivedPcs = AD.filter(d=>d.kr_actual).reduce((s,d)=>s+d.kr_pcs,0);
+document.getElementById('k-arrived').innerHTML = totalArrivedM+'M / '+totalArrived+' SKU / '+krArrivedPcs.toLocaleString()+' PCS';
 document.getElementById('k-arrived-sub').textContent =
   Math.round(totalArrivedM/D.total_styles*100)+'% 완료 (M 기준)';
 document.getElementById('k-delayed-wrap').innerHTML =
@@ -1051,9 +1053,9 @@ function toggleDailySummary(){
   }
 
   // 필터된 데이터의 모델수/PCS 계산 (누적% 분모용)
-  function getTotals(src){
+  function getTotals(src, pcsField){
     const styles = new Set(src.map(d => d.style_code));
-    const pcs = src.reduce((s,d) => s + (d.ttl_pcs||0), 0);
+    const pcs = src.reduce((s,d) => s + (d[pcsField||'ttl_pcs']||0), 0);
     return { totalModels: styles.size, totalPcs: pcs };
   }
 
@@ -1066,7 +1068,7 @@ function toggleDailySummary(){
   // --- KR 데이터 빌드 ---
   function buildKrRows(cat, itemSet){
     const src = getFilteredSrc(cat, itemSet);
-    const {totalModels, totalPcs} = getTotals(src);
+    const {totalModels, totalPcs} = getTotals(src, 'kr_pcs');
     const byDate = {};
     src.forEach(d => {
       const isDone = !!d.kr_actual;
@@ -1076,7 +1078,7 @@ function toggleDailySummary(){
       if(!byDate[key]) byDate[key] = {done: isDone, date: dt, styles:new Set(), skus:0, pcs:0};
       byDate[key].styles.add(d.style_code);
       byDate[key].skus++;
-      byDate[key].pcs += (d.ttl_pcs||0);
+      byDate[key].pcs += (d.kr_pcs||0);
     });
     const rows = Object.values(byDate);
     rows.sort((a,b) => a.date < b.date ? -1 : a.date > b.date ? 1 : (a.done===b.done ? 0 : a.done ? -1 : 1));
@@ -1095,7 +1097,7 @@ function toggleDailySummary(){
   // --- CN 데이터 빌드 ---
   function buildCnRows(cat, itemSet){
     const src = getFilteredSrc(cat, itemSet);
-    const {totalModels, totalPcs} = getTotals(src);
+    const {totalModels, totalPcs} = getTotals(src, 'cn_pcs');
     const byDate = {};
     src.forEach(d => {
       const baseDate = d.cn_atd || d.cn_etd;
@@ -1107,7 +1109,7 @@ function toggleDailySummary(){
       if(!byDate[key]) byDate[key] = {done: isDone, date: rddDate, styles:new Set(), skus:0, pcs:0};
       byDate[key].styles.add(d.style_code);
       byDate[key].skus++;
-      byDate[key].pcs += (d.ttl_pcs||0);
+      byDate[key].pcs += (d.cn_pcs||0);
     });
     const rows = Object.values(byDate);
     rows.sort((a,b) => a.date < b.date ? -1 : a.date > b.date ? 1 : (a.done===b.done ? 0 : a.done ? -1 : 1));
