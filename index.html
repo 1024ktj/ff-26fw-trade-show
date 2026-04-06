@@ -509,15 +509,15 @@ tbody td.muted { color:var(--muted); }
 <div class="header">
   <div class="header-title">
     <h1>(WEAR) MLB 26FW Q2 TRADE SHOW — 샘플 입고 대시보드</h1>
-    <p>COVER 시트 기준 (2026.04.03 업데이트) | GO 아이템 221 SKU | 지정 담당자 9명</p>
+    <p>COVER 시트 기준 (2026.04.06 업데이트) | GO 아이템 221 SKU | 지정 담당자 9명</p>
   </div>
   <div class="header-meta">
     <div class="today" id="today-txt"></div>
     <div class="d-badge" id="d-badge"></div>
     <div class="schedule-pills">
-      <span class="s-pill">KR 입고마감 04.02</span>
-      <span class="s-pill">CEO 품평회 04.06</span>
-      <span class="s-pill">CN TRADE SHOW 04.08</span>
+      <span class="s-pill" style="background:rgba(52,211,153,0.3);border-color:rgba(52,211,153,0.5)">KR 입고마감 04.02 ✓</span>
+      <span class="s-pill" style="background:rgba(255,255,255,0.35);border-color:rgba(255,255,255,0.6);font-weight:700">CEO 품평회 04.06 (오늘)</span>
+      <span class="s-pill">CN TRADE SHOW 04.08 (D-2)</span>
     </div>
   </div>
 </div>
@@ -582,19 +582,20 @@ tbody td.muted { color:var(--muted); }
     <div class="card">
       <div class="sec-title">주요 일정 타임라인</div>
       <div class="timeline">
-        <div class="tl-item key">
+        <div class="tl-item done">
           <div class="tl-date">2026-04-02</div>
-          <div class="tl-label" style="color:var(--danger)">CN/KR 샘플 입고 DUE</div>
-          <div class="tl-sub">전체 입고 마감 TARGET</div>
+          <div class="tl-label">CN/KR 샘플 입고 DUE</div>
+          <div class="tl-sub">전체 입고 마감 TARGET — 완료</div>
         </div>
-        <div class="tl-item key">
+        <div class="tl-item current">
           <div class="tl-date">2026-04-06</div>
-          <div class="tl-label" style="color:var(--danger)">26FW Q2 CEO 품평회</div>
+          <div class="tl-label" style="color:var(--primary);font-weight:800">26FW Q2 CEO 품평회 (오늘)</div>
+          <div class="tl-sub">KR 입고 221 SKU 완료 · CN 발송 221 SKU 완료</div>
         </div>
         <div class="tl-item key">
           <div class="tl-date">2026-04-08</div>
           <div class="tl-label" style="color:#9333ea;font-size:14px">26FW Q2 CN TRADE SHOW</div>
-          <div class="tl-sub">최종 쇼</div>
+          <div class="tl-sub">D-2 · 최종 쇼</div>
         </div>
       </div>
     </div>
@@ -627,7 +628,7 @@ tbody td.muted { color:var(--muted); }
     <div class="card">
       <div class="sec-title">CN RDD 예상 <span class="tag">예정 vs 실발송 기준</span></div>
       <div style="font-size:11px; color:var(--muted); margin-bottom:10px;">
-        CN출고→CN입고 : CN +2일 / VN·KR +5일 transit
+        CN출고→CN입고 : CN +2일 / VN·KR +5일 / KR HAND CARRY 당일(0일)
       </div>
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
         <div class="cat-tabs" id="rdd-cat-tabs" style="margin-bottom:0">
@@ -775,14 +776,28 @@ const D  = DASHBOARD;
 const AD = D.all_data;
 const _now = new Date();
 
-// CN ATD 기준 실적 RDD 계산 (cn_atd + transit_days)
+// CN ATD 기준 실적 RDD 계산 (KR HAND CARRY: 당일도착 transit 0일 / CN +2일 / VN·KR +5일)
 AD.forEach(d=>{
-  if(d.cn_atd && d.transit_days){
-    const atd = new Date(d.cn_atd);
-    atd.setDate(atd.getDate() + d.transit_days);
-    d.cn_rdd_actual = atd.getFullYear()+'-'+String(atd.getMonth()+1).padStart(2,'0')+'-'+String(atd.getDate()).padStart(2,'0');
+  if(d.cn_atd){
+    const isHandCarry = d.co==='KR' && d.courier && d.courier.toUpperCase().indexOf('HAND')>=0;
+    if(isHandCarry){
+      d.cn_rdd_actual = d.cn_atd; // HAND CARRY = 당일 도착
+    } else if(d.transit_days){
+      const atd = new Date(d.cn_atd);
+      atd.setDate(atd.getDate() + d.transit_days);
+      d.cn_rdd_actual = atd.getFullYear()+'-'+String(atd.getMonth()+1).padStart(2,'0')+'-'+String(atd.getDate()).padStart(2,'0');
+    } else {
+      d.cn_rdd_actual = null;
+    }
   } else {
     d.cn_rdd_actual = null;
+  }
+});
+// KR HAND CARRY: 예정 RDD도 transit 0일 기준으로 보정 (cn_etd = 곧 도착)
+AD.forEach(d=>{
+  const isHC = d.co==='KR' && d.courier && d.courier.toUpperCase().indexOf('HAND')>=0;
+  if(isHC && d.cn_etd){
+    d.cn_rdd = d.cn_etd; // planned RDD = ETD (당일 도착)
   }
 });
 const TODAY = _now.getFullYear()+'-'+String(_now.getMonth()+1).padStart(2,'0')+'-'+String(_now.getDate()).padStart(2,'0');
@@ -1102,7 +1117,8 @@ function toggleDailySummary(){
     src.forEach(d => {
       const baseDate = d.cn_atd || d.cn_etd;
       if(!baseDate) return;
-      const transit = d.transit_days || 0;
+      const isHandCarry = d.co==='KR' && d.courier && d.courier.toUpperCase().indexOf('HAND')>=0;
+      const transit = isHandCarry ? 0 : (d.transit_days || 0);
       const rddDate = transit > 0 ? addDays(baseDate, transit) : baseDate;
       const isDone = rddDate <= todayStr;
       const key = rddDate + (isDone ? '_done' : '_plan');
@@ -2248,8 +2264,10 @@ function renderDetail(){
     const naStyle  = d.is_na ? 'color:#94a3b8' : '';
     const cnEtdStr = d.cn_etd === 'N/A' ? `<span style="${naStyle}">N/A</span>`
                    : (d.cn_etd ? `<span style="color:${d.cn_etd<TODAY?'#94a3b8':'#60a5fa'};font-weight:600">${d.cn_etd}</span>` : '-');
+    const _isHC = d.co==='KR' && d.courier && d.courier.toUpperCase().indexOf('HAND')>=0;
+    const _transitLabel = _isHC ? ' <small style="color:#34d399">(HC)</small>' : (d.transit_days ? ' <small style="color:#94a3b8">(+'+d.transit_days+'일)</small>' : '');
     const cnRddStr = d.cn_rdd === 'N/A' ? `<span style="${naStyle}">N/A</span>`
-                   : (d.cn_rdd ? `<span style="color:${d.cn_rdd<TODAY?'#94a3b8':'#7c5fc0'};font-weight:600">${d.cn_rdd}${d.transit_days?' <small style="color:#94a3b8">(+'+d.transit_days+'일)</small>':''}</span>` : '-');
+                   : (d.cn_rdd ? `<span style="color:${d.cn_rdd<TODAY?'#94a3b8':'#7c5fc0'};font-weight:600">${d.cn_rdd}${_transitLabel}</span>` : '-');
     const krExpStr = d.kr_expected === 'N/A' ? `<span style="${naStyle}">N/A</span>`
                    : (d.kr_expected ? `<span style="color:${d.kr_expected<TODAY&&!d.kr_actual?'#f87171':'#1e2a4a'};font-weight:600">${d.kr_expected}${d.kr_expected<TODAY&&!d.kr_actual?' <span style="color:#f87171">!</span>':''}</span>` : '-');
     tb.innerHTML+=`
